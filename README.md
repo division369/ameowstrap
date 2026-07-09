@@ -16,6 +16,12 @@
   <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/stargazers"><img src="https://img.shields.io/github/stars/RealSlimShady2000/MrExLiveChannelForcer?label=stars&color=f59e0b" alt="GitHub stars"></a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20Download%20ExploitStrap-Latest%20release-22D3EE?style=for-the-badge&logo=windows&logoColor=white" alt="Download the latest ExploitStrap release">
+  </a>
+</p>
+
 **The Roblox launcher built for executor and exploit users.** A fork of [Bloxstrap](https://github.com/bloxstraplabs/bloxstrap) hardened against the things that break executors — surprise channel routing, updates that ship before your tool catches up, and ban traces left on your machine — plus a load of quality-of-life extras.
 
 > [!NOTE]
