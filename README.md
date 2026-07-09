@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest">
+  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest/download/ExploitStrap.exe">
     <img src="https://img.shields.io/badge/%E2%AC%87%20Download%20ExploitStrap-Latest%20release-22D3EE?style=for-the-badge&logo=windows&logoColor=white" alt="Download the latest ExploitStrap release">
   </a>
 </p>

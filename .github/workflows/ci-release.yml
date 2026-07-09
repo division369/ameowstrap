@@ -64,13 +64,17 @@ jobs:
       #     wait-for-completion: true
       #     output-artifact-directory: 'release'
 
-      - name: Rename binary
-        run: mv release/ExploitStrap.exe ExploitStrap-${{ github.ref_name }}.exe
+      - name: Prepare binaries
+        # Ship two copies of the same exe: a versioned name for the archive, and a stable "ExploitStrap.exe"
+        # so https://.../releases/latest/download/ExploitStrap.exe is a permanent one-click download link.
+        run: |
+          cp release/ExploitStrap.exe ExploitStrap-${{ github.ref_name }}.exe
+          cp release/ExploitStrap.exe ExploitStrap.exe
 
       - name: Generate SHA256SUMS
         run: |
           set -e
-          sha256sum ExploitStrap-${{ github.ref_name }}.exe > SHA256SUMS
+          sha256sum ExploitStrap-${{ github.ref_name }}.exe ExploitStrap.exe > SHA256SUMS
           cat SHA256SUMS
 
       - name: Create release
@@ -79,5 +83,6 @@ jobs:
           draft: true
           files: |
             ExploitStrap-${{ github.ref_name }}.exe
+            ExploitStrap.exe
             SHA256SUMS
           name: ExploitStrap ${{ github.ref_name }}
