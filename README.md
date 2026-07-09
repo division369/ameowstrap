@@ -11,6 +11,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-success" alt="License: MIT"></a>
   <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/actions/workflows/ci-release.yml"><img src="https://img.shields.io/github/actions/workflow/status/RealSlimShady2000/MrExLiveChannelForcer/ci-release.yml?branch=main&label=build" alt="Build status"></a>
   <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest"><img src="https://img.shields.io/github/downloads/RealSlimShady2000/MrExLiveChannelForcer/latest/total?label=downloads%40latest&color=8b5cf6" alt="Downloads (latest release)"></a>
+  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases"><img src="https://img.shields.io/github/downloads/RealSlimShady2000/MrExLiveChannelForcer/total?label=downloads%40total&color=8b5cf6" alt="Downloads (all releases, all time)"></a>
   <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest"><img src="https://img.shields.io/github/v/release/RealSlimShady2000/MrExLiveChannelForcer?label=release&color=8b5cf6" alt="Latest release"></a>
   <a href="https://discord.robloxscripts.com"><img src="https://img.shields.io/discord/1424371108244619377?label=discord&logo=discord&logoColor=white&color=5865F2" alt="Discord — join us"></a>
   <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/stargazers"><img src="https://img.shields.io/github/stars/RealSlimShady2000/MrExLiveChannelForcer?label=stars&color=f59e0b" alt="GitHub stars"></a>
