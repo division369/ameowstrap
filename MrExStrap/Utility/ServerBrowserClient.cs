@@ -18,11 +18,11 @@ namespace ExploitStrap.Utility
         private const string LOG_IDENT = "ServerBrowserClient";
 
         // One page of public servers for a place (newest-first), players/ping/fps included. No auth.
-        public static async Task<ServerListResponse?> FetchServersAsync(long placeId, string? cursor = null)
+        public static async Task<ServerListResponse?> FetchServersAsync(long placeId, string? cursor = null, int sortOrder = 2)
         {
             try
             {
-                string url = $"https://games.roblox.com/v1/games/{placeId}/servers/Public?limit=100&sortOrder=2";
+                string url = $"https://games.roblox.com/v1/games/{placeId}/servers/Public?limit=100&sortOrder={sortOrder}";
                 if (!string.IsNullOrEmpty(cursor))
                     url += $"&cursor={Uri.EscapeDataString(cursor)}";
 
@@ -33,6 +33,21 @@ namespace ExploitStrap.Utility
                 App.Logger.WriteException(LOG_IDENT + "::FetchServers", ex);
                 return null;
             }
+        }
+
+        // The least-populated joinable public server. sortOrder=1 returns emptiest-first; we still pick
+        // the least-full one client-side so it holds up even if that ordering ever changes. Returns null
+        // when the game has no joinable public servers or the API declines. No auth needed.
+        public static async Task<GameServer?> GetEmptiestServerAsync(long placeId)
+        {
+            var resp = await FetchServersAsync(placeId, null, sortOrder: 1);
+            if (resp?.Data is null)
+                return null;
+
+            return resp.Data
+                .Where(s => !string.IsNullOrEmpty(s.Id) && s.Playing < s.MaxPlayers)
+                .OrderBy(s => s.Playing)
+                .FirstOrDefault();
         }
 
         // Region lookups need a saved account to authenticate the gamejoin call. The server IP is the

@@ -108,5 +108,71 @@ namespace ExploitStrap.Utility
 
             return commandLine + "&accessCode=" + accessCode;
         }
+
+        // True only for a plain "join any server of place X" launch — the one case where it's safe to
+        // redirect to a specific server. Skips: no place / home screen (no placeId), VIP or private
+        // servers (accessCode / RequestPrivateGame), and launches already targeting a specific server
+        // (RequestGameJob, or a deeplink gameInstanceId).
+        public static bool IsPlainPlaceJoin(string commandLine)
+        {
+            if (string.IsNullOrWhiteSpace(commandLine))
+                return false;
+
+            if (TryExtractPlaceId(commandLine) is null)
+                return false; // no place — home screen / app launch
+
+            if (TryExtractAccessCode(commandLine) is not null)
+                return false; // VIP / private server
+
+            if (commandLine.Contains("RequestGameJob", StringComparison.OrdinalIgnoreCase)
+                || commandLine.Contains("RequestPrivateGame", StringComparison.OrdinalIgnoreCase)
+                || commandLine.Contains("gameInstanceId", StringComparison.OrdinalIgnoreCase))
+                return false; // already targeting a specific server
+
+            return true;
+        }
+
+        // Redirect a plain place-join to a specific server (jobId). For the protocol launch shape it
+        // rewrites the encoded placelauncherurl's "request=RequestGame" -> "RequestGameJob" and appends
+        // "&gameId=<jobId>"; for a roblox:// deeplink it appends "&gameInstanceId=<jobId>". Returns the
+        // input unchanged if there's nothing to rewrite. Mirrors AppendAccessCode.
+        public static string InjectGameJob(string commandLine, string jobId)
+        {
+            if (string.IsNullOrEmpty(commandLine) || string.IsNullOrEmpty(jobId))
+                return commandLine;
+
+            var launcherMatch = PlaceLauncherUrlRegex.Match(commandLine);
+            if (launcherMatch.Success)
+            {
+                string encoded = launcherMatch.Groups[1].Value;
+
+                string decoded;
+                try { decoded = Uri.UnescapeDataString(encoded); }
+                catch { decoded = encoded; }
+
+                string rewritten = Regex.Replace(
+                    decoded,
+                    @"request=RequestGame(?![A-Za-z0-9])",
+                    "request=RequestGameJob",
+                    RegexOptions.IgnoreCase);
+
+                if (!rewritten.Contains("gameId=", StringComparison.OrdinalIgnoreCase))
+                    rewritten += "&gameId=" + jobId;
+
+                string reEncoded = Uri.EscapeDataString(rewritten);
+                int start = launcherMatch.Groups[1].Index;
+                int len = launcherMatch.Groups[1].Length;
+                return commandLine.Substring(0, start) + reEncoded + commandLine.Substring(start + len);
+            }
+
+            // roblox:// deeplink shape (rare on the bootstrapper path)
+            if (commandLine.Contains("experiences/start", StringComparison.OrdinalIgnoreCase)
+                && !commandLine.Contains("gameInstanceId", StringComparison.OrdinalIgnoreCase))
+            {
+                return commandLine + "&gameInstanceId=" + jobId;
+            }
+
+            return commandLine;
+        }
     }
 }

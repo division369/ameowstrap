@@ -24,6 +24,30 @@ namespace ExploitStrap.UI.ViewModels.Settings
             set => App.FastFlags.SetPreset("Rendering.MSAA", MSAALevels[value]);
         }
 
+        public IReadOnlyDictionary<RenderingMode, string> RenderingModes => FastFlagManager.RenderingModes;
+
+        public RenderingMode SelectedRenderingMode
+        {
+            get => App.FastFlags.GetPresetEnum(RenderingModes, "Rendering.Mode", "True");
+            set => App.FastFlags.SetPresetEnum("Rendering.Mode", value.ToString(), "True");
+        }
+
+        public bool GraySky
+        {
+            get => App.FastFlags.GetPreset("Rendering.GraySky") == "True";
+            set => App.FastFlags.SetPreset("Rendering.GraySky", value ? "True" : null);
+        }
+
+        public bool DisableGrass
+        {
+            get => App.FastFlags.GetPreset("Rendering.Grass.Max") == "0";
+            set
+            {
+                App.FastFlags.SetPreset("Rendering.Grass.Max", value ? "0" : null);
+                App.FastFlags.SetPreset("Rendering.Grass.Min", value ? "0" : null);
+            }
+        }
+
         public bool FixDisplayScaling
         {
             get => App.FastFlags.GetPreset("Rendering.DisableScaling") == "True";

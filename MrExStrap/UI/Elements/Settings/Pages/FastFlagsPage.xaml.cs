@@ -3,9 +3,12 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Collections.ObjectModel;
 
+using System.Threading.Tasks;
+
 using ExploitStrap.Models.Persistable;
 using ExploitStrap.UI.Elements.Dialogs;
 using ExploitStrap.UI.ViewModels.Settings;
+using ExploitStrap.Utility;
 
 namespace ExploitStrap.UI.Elements.Settings.Pages
 {
@@ -47,6 +50,18 @@ namespace ExploitStrap.UI.Elements.Settings.Pages
             SetupViewModel();
             InitProfileSelector();
             ReloadList();
+
+            // Pull Roblox's live known-flags list in the background; refresh the grid once it lands so
+            // the "Known" column fills in.
+            _ = LoadKnownFlagsAsync();
+        }
+
+        private async Task LoadKnownFlagsAsync()
+        {
+            await KnownFlags.LoadAsync();
+
+            if (KnownFlags.Loaded)
+                Dispatcher.Invoke(ReloadList);
         }
 
         private void SetupViewModel()
@@ -470,6 +485,32 @@ namespace ExploitStrap.UI.Elements.Settings.Pages
 
             _searchFilter = textbox.Text;
             ReloadList();
+        }
+
+        private void BrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!KnownFlags.Loaded)
+            {
+                Frontend.ShowMessageBox("The flag list is still loading — give it a second and try again.", MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new FlagSearchDialog { Owner = Window.GetWindow(this) };
+            dialog.ShowDialog();
+
+            if (!string.IsNullOrEmpty(dialog.SelectedFlag))
+                AddSingle(dialog.SelectedFlag, DefaultFlagValue(dialog.SelectedFlag));
+        }
+
+        private static string DefaultFlagValue(string name)
+        {
+            if (name.StartsWith("FFlag") || name.StartsWith("DFFlag") || name.StartsWith("SFFlag"))
+                return "True";
+
+            if (name.StartsWith("FInt") || name.StartsWith("DFInt"))
+                return "0";
+
+            return "";
         }
     }
 }

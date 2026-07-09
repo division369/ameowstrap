@@ -46,6 +46,16 @@ namespace ExploitStrap
             { "Rendering.TextureQuality.Level", "DFIntTextureQualityOverride" },
 
             { "Rendering.Framerate", "DFIntTaskSchedulerTargetFps" },
+
+            // Rendering mode — force the graphics API (all three are on Roblox's allowlist).
+            { "Rendering.Mode.D3D11", "FFlagDebugGraphicsPreferD3D11" },
+            { "Rendering.Mode.Vulkan", "FFlagDebugGraphicsPreferVulkan" },
+            { "Rendering.Mode.OpenGL", "FFlagDebugGraphicsPreferOpenGL" },
+
+            // Small allowlisted visual/performance tweaks.
+            { "Rendering.GraySky", "FFlagDebugSkyGray" },
+            { "Rendering.Grass.Max", "FIntFRMMaxGrassDistance" },
+            { "Rendering.Grass.Min", "FIntFRMMinGrassDistance" },
         };
 
         public static IReadOnlyDictionary<MSAAMode, string?> MSAAModes => new Dictionary<MSAAMode, string?>
@@ -53,7 +63,16 @@ namespace ExploitStrap
             { MSAAMode.Default, null },
             { MSAAMode.x1, "1" },
             { MSAAMode.x2, "2" },
-            { MSAAMode.x4, "4" }
+            { MSAAMode.x4, "4" },
+            { MSAAMode.x8, "8" }
+        };
+
+        public static IReadOnlyDictionary<RenderingMode, string> RenderingModes => new Dictionary<RenderingMode, string>
+        {
+            { RenderingMode.Default, "None" },
+            { RenderingMode.D3D11, "D3D11" },
+            { RenderingMode.Vulkan, "Vulkan" },
+            { RenderingMode.OpenGL, "OpenGL" }
         };
 
         public static IReadOnlyDictionary<TextureQuality, string?> TextureQualityLevels => new Dictionary<TextureQuality, string?>

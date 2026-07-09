@@ -698,12 +698,52 @@ namespace ExploitStrap
                         Frontend.ShowBalloonTip(Strings.Bootstrapper_ModificationsFailed_Title, Strings.Bootstrapper_ModificationsFailed_Message, ToolTipIcon.Warning);
                 }
 
+                await MaybeSelectEmptiestServerAsync();
                 StartRoblox();
             }
 
             await mutex.ReleaseAsync();
 
             Dialog?.CloseBootstrapper();
+        }
+
+        // When "join the emptiest server on launch" is on and this is a plain game launch (not a
+        // specific server, VIP, or home screen), find the least-populated public server and rewrite the
+        // launch to join it. Best-effort — any failure leaves the launch untouched.
+        private async Task MaybeSelectEmptiestServerAsync()
+        {
+            const string LOG_IDENT = "Bootstrapper::MaybeSelectEmptiestServer";
+
+            if (!App.Settings.Prop.JoinEmptiestServerOnLaunch)
+                return;
+
+            if (_launchMode != LaunchMode.Player)
+                return;
+
+            if (!Utility.LaunchArgsUtility.IsPlainPlaceJoin(_launchCommandLine))
+                return;
+
+            long? placeId = Utility.LaunchArgsUtility.TryExtractPlaceId(_launchCommandLine);
+            if (placeId is null || placeId <= 0)
+                return;
+
+            try
+            {
+                var server = await Utility.ServerBrowserClient.GetEmptiestServerAsync(placeId.Value);
+                if (server is null || string.IsNullOrEmpty(server.Id))
+                {
+                    App.Logger.WriteLine(LOG_IDENT, "No joinable public server found; launching normally.");
+                    return;
+                }
+
+                _launchCommandLine = Utility.LaunchArgsUtility.InjectGameJob(_launchCommandLine, server.Id);
+                App.Logger.WriteLine(LOG_IDENT, $"Rewrote launch to emptiest server {server.Id} ({server.Playing}/{server.MaxPlayers}).");
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT, ex);
+                // leave _launchCommandLine unchanged → normal launch
+            }
         }
 
         private void FetchCurrentChannel()

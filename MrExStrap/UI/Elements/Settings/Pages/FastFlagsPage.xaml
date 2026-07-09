@@ -50,6 +50,30 @@
         </controls:OptionControl>
 
         <controls:OptionControl
+            Header="Rendering mode"
+            Description="Force the graphics API Roblox renders with. Vulkan or OpenGL can run better on some GPUs — leave it on Automatic if you're not sure. These flags are on Roblox's allowlist.">
+            <ComboBox Margin="5,0,0,0" Padding="10,5,10,5" Width="200" ItemsSource="{Binding RenderingModes.Keys, Mode=OneTime}" Text="{Binding SelectedRenderingMode, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Path=., Converter={StaticResource EnumNameConverter}}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </controls:OptionControl>
+
+        <controls:OptionControl
+            Header="Gray sky"
+            Description="Replaces the sky with a flat gray. A small visibility and performance tweak. Allowlisted.">
+            <ui:ToggleSwitch IsChecked="{Binding GraySky, Mode=TwoWay}" />
+        </controls:OptionControl>
+
+        <controls:OptionControl
+            Header="Remove grass"
+            Description="Sets the grass render distance to zero so decorative grass stops drawing. Can help performance and sightlines. Allowlisted.">
+            <ui:ToggleSwitch IsChecked="{Binding DisableGrass, Mode=TwoWay}" />
+        </controls:OptionControl>
+
+        <controls:OptionControl
             Header="{x:Static resources:Strings.Menu_FastFlags_Presets_FixDisplayScaling_Title}"
             Description="{x:Static resources:Strings.Menu_FastFlags_Presets_FixDisplayScaling_Description}"
             HelpLink="https://bloxstraplabs.com/wiki/features/engine-settings/#preserving-rendering-quality">
@@ -123,41 +147,103 @@
             </StackPanel>
         </Border>
 
+        <!-- Ban-risk disclaimer (user-requested). Honest framing: the flags that actually work can still
+             be treated as a ToS violation if used for advantage. -->
+        <Border Margin="0,0,0,8" Padding="12,10" CornerRadius="4"
+                Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}"
+                BorderBrush="{DynamicResource SystemFillColorCriticalBrush}" BorderThickness="0,0,0,2">
+            <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="Warning24" FontSize="20" Margin="0,0,10,0" VerticalAlignment="Top" />
+                <StackPanel MaxWidth="640">
+                    <TextBlock FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"
+                               Text="This could get your account punished" />
+                    <TextBlock Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="Fast Flags are unofficial engineer and debug settings. The allowlisted ones that do take effect can still change how the game looks or plays for you, and using them to gain an unfair advantage (removing textures or obstacles, forcing lighting, faking UI) can be treated as a Terms of Service violation. Roblox can also change which flags it honours, or starts watching, at any time. Use this at your own risk." />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <Expander Margin="0,0,0,16" Header="What Fast Flags are currently on Roblox's allowlist?">
             <StackPanel Margin="4,8,4,4">
+                <StackPanel.Resources>
+                    <Style x:Key="FlagChipBorder" TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6" />
+                        <Setter Property="BorderThickness" Value="1" />
+                        <Setter Property="Padding" Value="9,4" />
+                        <Setter Property="Margin" Value="0,0,7,7" />
+                    </Style>
+                </StackPanel.Resources>
+
                 <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Text="Roblox re-evaluates this allowlist regularly and can change it at any time without warning. This list being here is no guarantee a flag stays allowed. Anything not on it has no effect on the Roblox player." />
 
-                <TextBlock FontWeight="SemiBold" FontSize="13" Margin="0,4,0,2" Text="Geometry" />
-                <TextBlock FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                    DFIntCSGLevelOfDetailSwitchingDistance<LineBreak />
-                    DFIntCSGLevelOfDetailSwitchingDistanceL12<LineBreak />
-                    DFIntCSGLevelOfDetailSwitchingDistanceL23<LineBreak />
-                    DFIntCSGLevelOfDetailSwitchingDistanceL34
-                </TextBlock>
+                <!-- Colour key: the prefix tells you the flag's value type. -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="Type key:" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <Border CornerRadius="4" Padding="7,2" Margin="0,0,6,0" BorderThickness="1" Background="#227EDBA6" BorderBrush="#557EDBA6">
+                        <TextBlock FontFamily="Consolas" FontSize="10.5"><Run Text="FFlag" FontWeight="Bold" Foreground="#7EDBA6" /><Run Text=" bool" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /></TextBlock>
+                    </Border>
+                    <Border CornerRadius="4" Padding="7,2" Margin="0,0,6,0" BorderThickness="1" Background="#226FD3E8" BorderBrush="#556FD3E8">
+                        <TextBlock FontFamily="Consolas" FontSize="10.5"><Run Text="FInt" FontWeight="Bold" Foreground="#6FD3E8" /><Run Text=" number" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /></TextBlock>
+                    </Border>
+                    <Border CornerRadius="4" Padding="7,2" BorderThickness="1" Background="#22C2A9EC" BorderBrush="#55C2A9EC">
+                        <TextBlock FontFamily="Consolas" FontSize="10.5"><Run Text="FString" FontWeight="Bold" Foreground="#C2A9EC" /><Run Text=" text" Foreground="{DynamicResource TextFillColorSecondaryBrush}" /></TextBlock>
+                    </Border>
+                </StackPanel>
 
-                <TextBlock FontWeight="SemiBold" FontSize="13" Margin="0,10,0,2" Text="Rendering" />
-                <TextBlock FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                    FFlagHandleAltEnterFullscreenManually<LineBreak />
-                    DFFlagTextureQualityOverrideEnabled<LineBreak />
-                    DFIntTextureQualityOverride<LineBreak />
-                    FIntDebugForceMSAASamples<LineBreak />
-                    DFFlagDisableDPIScale<LineBreak />
-                    FFlagDebugGraphicsPreferD3D11<LineBreak />
-                    FFlagDebugSkyGray<LineBreak />
-                    DFFlagDebugPauseVoxelizer<LineBreak />
-                    DFIntDebugFRMQualityLevelOverride<LineBreak />
-                    FIntFRMMaxGrassDistance<LineBreak />
-                    FIntFRMMinGrassDistance<LineBreak />
-                    FFlagDebugGraphicsPreferVulkan<LineBreak />
-                    FFlagDebugGraphicsPreferOpenGL
-                </TextBlock>
+                <!-- Geometry -->
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+                    <Ellipse Width="9" Height="9" Fill="#3FC8E0" VerticalAlignment="Center" />
+                    <TextBlock Text="Geometry" FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <Border CornerRadius="8" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center" Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <TextBlock Text="4" FontSize="10.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+                <WrapPanel>
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFIntCSGLevelOfDetailSwitchingDistance" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFIntCSGLevelOfDetailSwitchingDistanceL12" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFIntCSGLevelOfDetailSwitchingDistanceL23" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFIntCSGLevelOfDetailSwitchingDistanceL34" />
+                </WrapPanel>
 
-                <TextBlock FontWeight="SemiBold" FontSize="13" Margin="0,10,0,2" Text="User Interface" />
-                <TextBlock FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                    FIntGrassMovementReducedMotionFactor
-                </TextBlock>
+                <!-- Rendering -->
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,6">
+                    <Ellipse Width="9" Height="9" Fill="#58D98C" VerticalAlignment="Center" />
+                    <TextBlock Text="Rendering" FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <Border CornerRadius="8" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center" Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <TextBlock Text="13" FontSize="10.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+                <WrapPanel>
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FFlagHandleAltEnterFullscreenManually" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFFlagTextureQualityOverrideEnabled" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFIntTextureQualityOverride" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FIntDebugForceMSAASamples" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFFlagDisableDPIScale" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FFlagDebugGraphicsPreferD3D11" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FFlagDebugSkyGray" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFFlagDebugPauseVoxelizer" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="DFIntDebugFRMQualityLevelOverride" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FIntFRMMaxGrassDistance" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FIntFRMMinGrassDistance" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FFlagDebugGraphicsPreferVulkan" />
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FFlagDebugGraphicsPreferOpenGL" />
+                </WrapPanel>
+
+                <!-- User Interface -->
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,6">
+                    <Ellipse Width="9" Height="9" Fill="#A78BFA" VerticalAlignment="Center" />
+                    <TextBlock Text="User Interface" FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <Border CornerRadius="8" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center" Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <TextBlock Text="1" FontSize="10.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+                <WrapPanel>
+                    <Border Style="{StaticResource FlagChipBorder}" controls:FlagChip.Flag="FIntGrassMovementReducedMotionFactor" />
+                </WrapPanel>
             </StackPanel>
         </Expander>
 
@@ -175,6 +261,7 @@
                 </ui:Button.Style>
             </ui:Button>
             <ToggleButton x:Name="TogglePresetsButton"  Content="{x:Static resources:Strings.Menu_FastFlagEditor_ShowPresetFlags}" Click="ToggleButton_Click"  Margin="0,0,12,16" />
+            <ui:Button Icon="Search24" Content="Browse flags" Click="BrowseButton_Click" Margin="0,0,12,16" />
             <ui:Button Icon="ArrowExportRtl24" Content="{x:Static resources:Strings.Menu_FastFlagEditor_ExportJson}" Click="ExportJSONButton_Click" Margin="0,0,12,16" />
         </WrapPanel>
 
@@ -228,7 +315,9 @@
             </DataGrid.CellStyle>
 
             <DataGrid.Columns>
+                <DataGridTextColumn Header="Known" Binding="{Binding Name, Converter={StaticResource FlagKnownConverter}}" Width="56" IsReadOnly="True" />
                 <DataGridTextColumn Header="{x:Static resources:Strings.Common_Name}" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Tag" Binding="{Binding Name, Converter={StaticResource FlagTagConverter}}" Width="100" IsReadOnly="True" />
                 <DataGridTextColumn Header="{x:Static resources:Strings.Common_Value}" Binding="{Binding Value}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>

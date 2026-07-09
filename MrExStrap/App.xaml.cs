@@ -307,7 +307,7 @@ namespace ExploitStrap
             // Apply dark + the ExploitStrap neon-cyan brand accent app-wide as early as possible,
             // so every surface — including a pure bootstrapper launch with no settings window —
             // renders on-brand. (WpfUiWindow.ApplyTheme re-applies the same per settings window.)
-            Wpf.Ui.Appearance.Accent.Apply(UI.Elements.Base.WpfUiWindow.BrandAccent, Wpf.Ui.Appearance.ThemeType.Dark);
+            Utility.ThemeManager.ApplyFromSettings();
 
             Logger.WriteLine(LOG_IDENT, $"Starting {ProjectName} v{Version}");
 
@@ -522,6 +522,12 @@ namespace ExploitStrap
                 }
 
                 Settings.Load();
+
+                // Re-apply the theme now that the saved palette + effect toggles are loaded — the early
+                // apply in OnStartup ran on defaults (before this). Keeps even a pure bootstrapper launch
+                // on the user's chosen palette.
+                Utility.ThemeManager.ApplyFromSettings();
+
                 State.Load();
                 Accounts.Load();
                 Utility.FastFlagProfiles.MigrateGlobalIfNeeded();

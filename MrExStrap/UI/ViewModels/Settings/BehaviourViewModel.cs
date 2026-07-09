@@ -14,6 +14,12 @@ namespace ExploitStrap.UI.ViewModels.Settings
             set { App.Settings.Prop.ShowVersionPickerOnLaunch = value; OnPropertyChanged(nameof(ShowVersionPickerOnLaunch)); }
         }
 
+        public bool JoinEmptiestServerOnLaunch
+        {
+            get => App.Settings.Prop.JoinEmptiestServerOnLaunch;
+            set { App.Settings.Prop.JoinEmptiestServerOnLaunch = value; OnPropertyChanged(nameof(JoinEmptiestServerOnLaunch)); }
+        }
+
         public bool ConfirmNonLiveLaunch
         {
             get => App.Settings.Prop.ConfirmNonLiveLaunch;

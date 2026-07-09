@@ -8,7 +8,7 @@
       xmlns:controls="clr-namespace:ExploitStrap.UI.Elements.Controls"
       xmlns:resources="clr-namespace:ExploitStrap.Resources"
       mc:Ignorable="d"
-      d:DesignHeight="900" d:DesignWidth="800"
+      d:DesignHeight="1100" d:DesignWidth="800"
       Title="AppearancePage"
       Scrollable="True">
     <StackPanel Margin="0,0,14,14">
@@ -19,5 +19,107 @@
             Description="{x:Static resources:Strings.Menu_Appearance_Language_Description}">
             <ComboBox Width="200" Padding="10,5,10,5" ItemsSource="{Binding Languages, Mode=OneTime}" Text="{Binding SelectedLanguage, Mode=TwoWay}" />
         </controls:OptionControl>
+
+        <!-- ===== Theme ===== -->
+        <TextBlock Text="Theme" FontSize="20" FontWeight="Medium" Margin="0,22,0,0" />
+        <TextBlock Text="Pick a preset or craft your own. Every change previews live." FontSize="14"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+
+        <controls:OptionControl Header="Theme preset" Description="A built-in colour scheme. Editing any colour below switches this to Custom.">
+            <ComboBox Width="200" Padding="10,5,10,5" ItemsSource="{Binding ThemePresets}" SelectedItem="{Binding SelectedThemePreset, Mode=TwoWay}" />
+        </controls:OptionControl>
+
+        <!-- Colours -->
+        <TextBlock Text="Colours" FontSize="16" FontWeight="Medium" Margin="0,16,0,6" />
+        <Border CornerRadius="10" Padding="16,12" BorderThickness="1"
+                Background="{DynamicResource GlassFillBrush}" BorderBrush="{DynamicResource GlassBorderBrush}">
+            <StackPanel>
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Accent" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Border Grid.Column="1" Width="48" Height="24" CornerRadius="5" Margin="0,0,12,0"
+                            BorderThickness="1" BorderBrush="{DynamicResource GlassBorderBrush}"
+                            Background="{DynamicResource BrandCyanBrush}" />
+                    <ui:TextBox Grid.Column="2" Text="{Binding AccentHex, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Gradient end" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Border Grid.Column="1" Width="48" Height="24" CornerRadius="5" Margin="0,0,12,0"
+                            BorderThickness="1" BorderBrush="{DynamicResource GlassBorderBrush}"
+                            Background="{DynamicResource BrandGradientBrush}" />
+                    <ui:TextBox Grid.Column="2" Text="{Binding GradientEndHex, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Purple accent" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Border Grid.Column="1" Width="48" Height="24" CornerRadius="5" Margin="0,0,12,0"
+                            BorderThickness="1" BorderBrush="{DynamicResource GlassBorderBrush}"
+                            Background="{DynamicResource BrandPurpleBrush}" />
+                    <ui:TextBox Grid.Column="2" Text="{Binding PurpleHex, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Border Grid.Column="1" Width="48" Height="24" CornerRadius="5" Margin="0,0,12,0"
+                            BorderThickness="1" BorderBrush="{DynamicResource GlassBorderBrush}"
+                            Background="{DynamicResource ApplicationBackgroundBrush}" />
+                    <ui:TextBox Grid.Column="2" Text="{Binding BackgroundHex, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Grid Margin="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Card surface" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Border Grid.Column="1" Width="48" Height="24" CornerRadius="5" Margin="0,0,12,0"
+                            BorderThickness="1" BorderBrush="{DynamicResource GlassBorderBrush}"
+                            Background="{DynamicResource BrandSurfaceBrush}" />
+                    <ui:TextBox Grid.Column="2" Text="{Binding SurfaceHex, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Effects -->
+        <TextBlock Text="Effects" FontSize="16" FontWeight="Medium" Margin="0,18,0,0" />
+        <controls:OptionControl Header="Aurora background" Description="The animated glow behind the launcher and Home dashboard.">
+            <ui:ToggleSwitch IsChecked="{Binding EnableAurora, Mode=TwoWay}" />
+        </controls:OptionControl>
+        <controls:OptionControl Header="Frosted glass" Description="Translucent card surfaces. Turn off for solid cards.">
+            <ui:ToggleSwitch IsChecked="{Binding EnableGlass, Mode=TwoWay}" />
+        </controls:OptionControl>
+        <controls:OptionControl Header="Neon glow" Description="Soft glow on the wordmark and accent edges.">
+            <ui:ToggleSwitch IsChecked="{Binding EnableGlow, Mode=TwoWay}" />
+        </controls:OptionControl>
+
+        <!-- App icon -->
+        <TextBlock Text="App icon" FontSize="16" FontWeight="Medium" Margin="0,18,0,0" />
+        <controls:OptionControl Header="Custom app icon" Description="Swap the icon shown in the taskbar, alt-tab and system tray. Pick an .ico or image file. Applies to open windows now and everywhere on the next launch.">
+            <StackPanel Orientation="Horizontal">
+                <ui:Button Icon="FolderOpen24" Content="Browse" Command="{Binding BrowseAppIconCommand}" />
+                <ui:Button Margin="8,0,0,0" Content="Reset" Command="{Binding ClearAppIconCommand}" />
+            </StackPanel>
+        </controls:OptionControl>
+        <TextBlock Margin="6,4,0,0" FontSize="12" TextWrapping="Wrap" FontFamily="Consolas"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding AppIconLocation}" />
+
+        <ui:Button Margin="0,20,0,0" Icon="ArrowReset24" Content="Reset theme to default" Command="{Binding ResetThemeCommand}" />
     </StackPanel>
 </ui:UiPage>

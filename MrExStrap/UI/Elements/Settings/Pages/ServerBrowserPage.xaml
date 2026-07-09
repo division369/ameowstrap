@@ -33,6 +33,8 @@
             <LineBreak /><LineBreak />
             <Run FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="Region detection is best-effort." />
             <Run Text="Roblox only reveals a server's location through an authenticated call, so it needs a saved account (Multi Instance tab) and is resolved one server at a time on demand. It can be rate-limited or come back as Unknown." />
+            <LineBreak />
+            <Run Text="Sorting by ping or players and joining the emptiest server need no account — only region detection does." />
         </TextBlock>
 
         <!-- Place input -->
@@ -40,16 +42,22 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ui:TextBox Grid.Column="0" Icon="Search24" PlaceholderText="Roblox place ID or game link (e.g. https://www.roblox.com/games/1234567/Name)"
                         Text="{Binding PlaceIdInput, UpdateSourceTrigger=PropertyChanged}" />
-            <ui:Button Grid.Column="1" Margin="8,0,0,0" Appearance="Primary" Icon="ArrowDownload24"
+            <ui:Button Grid.Column="1" Margin="8,0,0,0" Icon="ArrowDownload24"
                        Content="Load servers" Command="{Binding LoadCommand}" IsEnabled="{Binding NotBusy}" />
+            <ui:Button Grid.Column="2" Margin="8,0,0,0" Appearance="Primary" Icon="Play24"
+                       Content="Join emptiest server" Command="{Binding JoinEmptiestCommand}" IsEnabled="{Binding NotBusy}"
+                       ToolTip="Find and join the least-populated public server of this game in one click. No account needed." />
         </Grid>
 
-        <!-- Region toolbar -->
+        <!-- Sort + region toolbar -->
         <Grid Grid.Row="2" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -57,14 +65,19 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Column="0" Text="Region" VerticalAlignment="Center" Margin="2,0,8,0"
+            <TextBlock Grid.Column="0" Text="Sort" VerticalAlignment="Center" Margin="2,0,8,0"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <ComboBox Grid.Column="1" MinWidth="170" VerticalAlignment="Center"
+            <ComboBox Grid.Column="1" MinWidth="140" VerticalAlignment="Center"
+                      ItemsSource="{Binding SortOptions, Mode=OneTime}" SelectedItem="{Binding SelectedSort, Mode=TwoWay}" />
+
+            <TextBlock Grid.Column="2" Text="Region" VerticalAlignment="Center" Margin="16,0,8,0"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <ComboBox Grid.Column="3" MinWidth="150" VerticalAlignment="Center"
                       ItemsSource="{Binding RegionFilters}" SelectedItem="{Binding SelectedRegionFilter, Mode=TwoWay}" />
-            <ui:Button Grid.Column="2" Margin="8,0,0,0" Icon="Globe24" Content="Detect regions"
+            <ui:Button Grid.Column="4" Margin="8,0,0,0" Icon="Globe24" Content="Detect regions"
                        Command="{Binding DetectAllRegionsCommand}" IsEnabled="{Binding HasServers}" />
 
-            <TextBlock Grid.Column="4" VerticalAlignment="Center" TextAlignment="Right" TextTrimming="CharacterEllipsis"
+            <TextBlock Grid.Column="6" VerticalAlignment="Center" TextAlignment="Right" TextTrimming="CharacterEllipsis"
                        Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}"
                        Text="{Binding Status}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         </Grid>

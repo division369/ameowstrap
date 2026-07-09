@@ -10,18 +10,9 @@
              mc:Ignorable="d" 
              x:Name="Control"
              d:DesignHeight="450" d:DesignWidth="800">
+    <!-- Card visuals come from the global implicit GlassCardControlStyle (UI/Style/Glass.xaml):
+         frosted fill, luminous border, cyan hover + lift. -->
     <ui:CardControl Margin="0,8,0,0" Content="{Binding InnerContent, ElementName=Control}">
-        <ui:CardControl.Style>
-            <!-- Neon hover: subtle brand hairline that lights up cyan when hovered. -->
-            <Style TargetType="ui:CardControl" BasedOn="{StaticResource DefaultUiCardControlStyle}">
-                <Setter Property="BorderBrush" Value="{StaticResource BrandHairlineBrush}" />
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="BorderBrush" Value="{StaticResource BrandCyanBrush}" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-        </ui:CardControl.Style>
         <ui:CardControl.Header>
             <StackPanel>
                 <Grid>

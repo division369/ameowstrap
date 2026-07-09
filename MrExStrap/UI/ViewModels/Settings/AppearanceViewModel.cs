@@ -78,10 +78,154 @@ namespace ExploitStrap.UI.ViewModels.Settings
 
         public static List<string> Languages => Locale.GetLanguages();
 
-        public string SelectedLanguage 
-        { 
-            get => Locale.SupportedLocales[App.Settings.Prop.Locale]; 
+        public string SelectedLanguage
+        {
+            get => Locale.SupportedLocales[App.Settings.Prop.Locale];
             set => App.Settings.Prop.Locale = Locale.GetIdentifierFromName(value);
+        }
+
+        // ===== App theming (ExploitStrap fork feature) — live-editable brand palette =====
+        private ExploitStrap.Models.ThemePalette Pal => App.Settings.Prop.Palette;
+        private void ApplyTheme() => ExploitStrap.Utility.ThemeManager.Apply(App.Settings.Prop.Palette);
+
+        public ICommand ResetThemeCommand => new RelayCommand(ResetTheme);
+        public ICommand BrowseAppIconCommand => new RelayCommand(BrowseAppIcon);
+        public ICommand ClearAppIconCommand => new RelayCommand(() => AppIconLocation = "");
+
+        public IEnumerable<string> ThemePresets => ExploitStrap.Utility.ThemeManager.Presets.Keys.Append("Custom");
+
+        public string SelectedThemePreset
+        {
+            get => App.Settings.Prop.SelectedThemePreset;
+            set
+            {
+                App.Settings.Prop.SelectedThemePreset = value;
+                OnPropertyChanged(nameof(SelectedThemePreset));
+
+                if (ExploitStrap.Utility.ThemeManager.Presets.TryGetValue(value, out var preset))
+                {
+                    App.Settings.Prop.Palette = preset.Clone();
+                    ApplyTheme();
+                    NotifyColours();
+                }
+            }
+        }
+
+        // Accent drives the gradient start + glow too, so the palette stays cohesive from one colour.
+        public string AccentHex
+        {
+            get => Pal.Accent;
+            set { Pal.Accent = value; Pal.GradientStart = value; Pal.Glow = value; MarkCustom(); ApplyTheme(); }
+        }
+        public string GradientEndHex
+        {
+            get => Pal.GradientEnd;
+            set { Pal.GradientEnd = value; MarkCustom(); ApplyTheme(); }
+        }
+        public string PurpleHex
+        {
+            get => Pal.Purple;
+            set { Pal.Purple = value; MarkCustom(); ApplyTheme(); }
+        }
+        public string BackgroundHex
+        {
+            get => Pal.Background;
+            set { Pal.Background = value; MarkCustom(); ApplyTheme(); }
+        }
+        public string SurfaceHex
+        {
+            get => Pal.Surface;
+            set { Pal.Surface = value; MarkCustom(); ApplyTheme(); }
+        }
+
+        public bool EnableAurora
+        {
+            get => App.Settings.Prop.EnableAurora;
+            set { App.Settings.Prop.EnableAurora = value; ApplyTheme(); }
+        }
+        public bool EnableGlass
+        {
+            get => App.Settings.Prop.EnableGlass;
+            set { App.Settings.Prop.EnableGlass = value; ApplyTheme(); }
+        }
+        public bool EnableGlow
+        {
+            get => App.Settings.Prop.EnableGlow;
+            set { App.Settings.Prop.EnableGlow = value; ApplyTheme(); }
+        }
+
+        private void MarkCustom()
+        {
+            App.Settings.Prop.SelectedThemePreset = "Custom";
+            OnPropertyChanged(nameof(SelectedThemePreset));
+        }
+
+        private void NotifyColours()
+        {
+            OnPropertyChanged(nameof(AccentHex));
+            OnPropertyChanged(nameof(GradientEndHex));
+            OnPropertyChanged(nameof(PurpleHex));
+            OnPropertyChanged(nameof(BackgroundHex));
+            OnPropertyChanged(nameof(SurfaceHex));
+        }
+
+        private void ResetTheme()
+        {
+            App.Settings.Prop.Palette = new ExploitStrap.Models.ThemePalette();
+            App.Settings.Prop.SelectedThemePreset = "Default";
+            App.Settings.Prop.EnableAurora = true;
+            App.Settings.Prop.EnableGlass = true;
+            App.Settings.Prop.EnableGlow = true;
+
+            ApplyTheme();
+            NotifyColours();
+            OnPropertyChanged(nameof(SelectedThemePreset));
+            OnPropertyChanged(nameof(EnableAurora));
+            OnPropertyChanged(nameof(EnableGlass));
+            OnPropertyChanged(nameof(EnableGlow));
+        }
+
+        // ===== Custom app icon =====
+        public string AppIconLocation
+        {
+            get => App.Settings.Prop.CustomAppIconLocation;
+            set { App.Settings.Prop.CustomAppIconLocation = value; OnPropertyChanged(nameof(AppIconLocation)); ApplyAppIcon(); }
+        }
+
+        private void BrowseAppIcon()
+        {
+            var dialog = new OpenFileDialog { Filter = "Icon and image files|*.ico;*.png;*.jpg;*.jpeg" };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            AppIconLocation = dialog.FileName;
+        }
+
+        private void ApplyAppIcon()
+        {
+            try
+            {
+                string path = App.Settings.Prop.CustomAppIconLocation;
+
+                Uri uri = !string.IsNullOrEmpty(path) && File.Exists(path)
+                    ? new Uri(path)
+                    : new Uri("pack://application:,,,/ExploitStrap.ico");
+
+                var src = new System.Windows.Media.Imaging.BitmapImage();
+                src.BeginInit();
+                src.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                src.UriSource = uri;
+                src.EndInit();
+                src.Freeze();
+
+                foreach (Window window in Application.Current.Windows)
+                    window.Icon = src;
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AppearanceViewModel::ApplyAppIcon", ex);
+            }
         }
 
         public IEnumerable<BootstrapperStyle> Dialogs { get; } = BootstrapperStyleEx.Selections;

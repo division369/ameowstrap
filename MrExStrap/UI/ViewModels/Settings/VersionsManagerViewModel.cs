@@ -370,6 +370,27 @@ namespace ExploitStrap.UI.ViewModels.Settings
                 : "";
 
             IsInstallTarget = ResolveIsInstallTarget(profile);
+
+            // The built-in "Latest LIVE" profile has no executor logo to fetch, so instead of a bare
+            // letter placeholder show the Roblox app icon.
+            if (IsBuiltIn)
+                _logo = LoadRobloxIcon();
+        }
+
+        private static ImageSource? LoadRobloxIcon()
+        {
+            try
+            {
+                using var stream = ExploitStrap.Resource.GetStream("Icon2022.ico");
+                var frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                frame.Freeze();
+                return frame;
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("VersionProfileTile::LoadRobloxIcon", ex);
+                return null;
+            }
         }
 
         // True when Versions\<profile.VersionGuid>\ is a junction whose target's

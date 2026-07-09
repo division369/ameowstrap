@@ -14,6 +14,7 @@
                 <ResourceDictionary x:Name="CustomTheme" Source="UI/Style/Dark.xaml" /> <!-- NOTE: WpfUiWindow::ApplyTheme relies on this order. If you plan to change the order, please update the index in the function. -->
                 <ResourceDictionary x:Name="Default" Source="UI/Style/Default.xaml" />
                 <ResourceDictionary Source="UI/Style/Brand.xaml" />
+                <ResourceDictionary Source="UI/Style/Glass.xaml" /> <!-- Glass control system: merged after Brand so its implicit styles win app-wide. Appended (not reordered) so ApplyTheme's index 2 stays put. -->
             </ResourceDictionary.MergedDictionaries>
 
             <FontFamily x:Key="Rubik">pack://application:,,,/Resources/Fonts/#Rubik Light</FontFamily>
@@ -40,6 +41,8 @@
             <converters:StringFormatConverter x:Key="StringFormatConverter" />
             <converters:RangeConverter x:Key="RangeConverter" />
             <converters:EnumNameConverter x:Key="EnumNameConverter" />
+            <converters:FlagTagConverter x:Key="FlagTagConverter" />
+            <converters:FlagKnownConverter x:Key="FlagKnownConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

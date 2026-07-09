@@ -6,120 +6,123 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:local="clr-namespace:ExploitStrap.UI.Elements.Dialogs"
         xmlns:base="clr-namespace:ExploitStrap.UI.Elements.Base"
+        xmlns:controls="clr-namespace:ExploitStrap.UI.Elements.Controls"
         xmlns:models="clr-namespace:ExploitStrap.UI.ViewModels"
         xmlns:resources="clr-namespace:ExploitStrap.Resources"
         mc:Ignorable="d"
         Title="ExploitStrap"
         MinWidth="0"
         MinHeight="0"
-        Width="580"
+        Width="600"
         SizeToContent="Height"
         ResizeMode="NoResize"
         Background="{ui:ThemeResource ApplicationBackgroundBrush}"
         ExtendsContentIntoTitleBar="True"
         WindowStartupLocation="CenterScreen">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        <!-- Ambient aurora behind everything -->
+        <controls:AmbientBackground />
 
-        <ui:TitleBar Grid.Row="0" Grid.ColumnSpan="2" Padding="8" ShowMinimize="False" ShowMaximize="False" Title="ExploitStrap" Icon="pack://application:,,,/ExploitStrap.ico" CanMaximize="False" KeyboardNavigation.TabNavigation="None" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+            <ui:TitleBar Grid.Row="0" Grid.ColumnSpan="2" Padding="8" ShowMinimize="False" ShowMaximize="False" Title="ExploitStrap" Icon="pack://application:,,,/ExploitStrap.ico" CanMaximize="False" KeyboardNavigation.TabNavigation="None" />
 
-            <Grid Grid.Column="0" VerticalAlignment="Center">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                
-                <Grid Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,32">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Row="1" Margin="4,4,4,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="292" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                    <Image Grid.Column="0" Width="64" Height="64" Source="pack://application:,,,/Resources/ExploitStrapIcon.png" RenderOptions.BitmapScalingMode="HighQuality" />
-                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="ExploitStrap" FontSize="20" LineHeight="22" />
-                        <TextBlock Text="{Binding Version, Mode=OneTime}" VerticalAlignment="Bottom" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                        <Border Margin="0,6,0,0" Padding="8,3,8,3" CornerRadius="10" HorizontalAlignment="Left"
-                                Background="{Binding ChannelLockBackground, Mode=OneTime}">
-                            <TextBlock Text="{Binding ChannelLockText, Mode=OneTime}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                <Grid Grid.Column="0" VerticalAlignment="Center" Margin="14,0,6,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,26">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Image Grid.Column="0" Width="72" Height="72" Source="pack://application:,,,/Resources/ExploitStrapIcon.png"
+                               RenderOptions.BitmapScalingMode="HighQuality" Effect="{DynamicResource BrandGlowSoft}" />
+                        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="ExploitStrap" FontSize="22" FontWeight="SemiBold" LineHeight="24" />
+                            <TextBlock Text="{Binding Version, Mode=OneTime}" VerticalAlignment="Bottom" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <Border Margin="0,8,0,0" Padding="10,4" CornerRadius="10" HorizontalAlignment="Left"
+                                    Background="{Binding ChannelLockBackground, Mode=OneTime}">
+                                <TextBlock Text="{Binding ChannelLockText, Mode=OneTime}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" HorizontalAlignment="Center">
+                        <ui:Hyperlink Icon="QuestionCircle48" Content="{x:Static resources:Strings.About_Title}" Command="{Binding LaunchAboutCommand, Mode=OneTime}" HorizontalAlignment="Center" />
+                        <ui:Hyperlink Icon="PeopleCommunity28" Content="Roblox Exploit Community" NavigateUri="https://robloxscripts.com/" HorizontalAlignment="Center" />
+                        <ui:Hyperlink Icon="PlayCircle28" Content="YouTube" NavigateUri="https://www.youtube.com/@RealMrExploit-f5h" HorizontalAlignment="Center" />
+                        <ui:Hyperlink Icon="ArrowClockwise24" Content="Check for updates" Command="{Binding CheckForUpdatesCommand, Mode=OneTime}" HorizontalAlignment="Center" />
+
+                        <!-- RSWARE.STORE glass CTA. Whole border is clickable via the MouseBinding. -->
+                        <Border Margin="8,16,8,4" Padding="14,12" CornerRadius="10"
+                                BorderBrush="#3B82F6" BorderThickness="1" Cursor="Hand">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource GlassFillBrush}" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource GlassFillHoverBrush}" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftClick"
+                                              Command="models:GlobalViewModel.OpenWebpageCommand"
+                                              CommandParameter="https://rsware.store/" />
+                            </Border.InputBindings>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                        ToolTip="https://rsware.store/">
+                                <Image Source="pack://application:,,,/Resources/RswareLogo.png" Width="30" Height="30"
+                                       Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock VerticalAlignment="Center" TextAlignment="Center"
+                                           Foreground="#6AA6FF" TextWrapping="Wrap" MaxWidth="200">
+                                    <Run FontSize="15" FontWeight="Bold">RSWARE.STORE</Run>
+                                    <LineBreak />
+                                    <Run FontSize="11" FontWeight="SemiBold">Executors &amp; externals: Potassium, Volt, Severe, Matrix Hub</Run>
+                                </TextBlock>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                 </Grid>
 
-                <StackPanel Grid.Row="1" HorizontalAlignment="Center">
-                    <ui:Hyperlink Icon="QuestionCircle48" Content="{x:Static resources:Strings.About_Title}" Command="{Binding LaunchAboutCommand, Mode=OneTime}" HorizontalAlignment="Center" />
-                    <ui:Hyperlink Icon="PeopleCommunity28" Content="Roblox Exploit Community" NavigateUri="https://robloxscripts.com/" HorizontalAlignment="Center" />
-                    <ui:Hyperlink Icon="PlayCircle28" Content="YouTube" NavigateUri="https://www.youtube.com/@RealMrExploit-f5h" HorizontalAlignment="Center" />
-                    <ui:Hyperlink Icon="ArrowClockwise24" Content="Check for updates" Command="{Binding CheckForUpdatesCommand, Mode=OneTime}" HorizontalAlignment="Center" />
+                <StackPanel Grid.Column="1" Margin="10,4,16,4" VerticalAlignment="Center">
+                    <!-- Hero launch CTA: clean cyan->green gradient (glow removed, glassy look). -->
+                    <ui:Button x:Name="LaunchButton" TabIndex="0" Appearance="Primary" Icon="Play24" FontSize="15" Height="54"
+                               Margin="0,0,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                               Content="{x:Static resources:Strings.LaunchMenu_LaunchRoblox}"
+                               Command="{Binding LaunchRobloxCommand, Mode=OneTime}" />
 
-                    <!-- RSWARE.STORE CTA banner. Clickable area is the whole border via the
-                         MouseBinding below — Cursor=Hand gives the visual cue. Style trigger
-                         brightens the background on hover. -->
-                    <Border Margin="12,16,12,4" Padding="14,12" CornerRadius="6"
-                            BorderBrush="#3B82F6" BorderThickness="1"
-                            Cursor="Hand">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Background" Value="#143B82F6" />
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#2A3B82F6" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <Border.InputBindings>
-                            <MouseBinding MouseAction="LeftClick"
-                                          Command="models:GlobalViewModel.OpenWebpageCommand"
-                                          CommandParameter="https://rsware.store/" />
-                        </Border.InputBindings>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                    ToolTip="https://rsware.store/">
-                            <Image Source="pack://application:,,,/Resources/RswareLogo.png" Width="30" Height="30"
-                                   Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
-                            <TextBlock VerticalAlignment="Center" TextAlignment="Center"
-                                       Foreground="#3B82F6" TextWrapping="Wrap" MaxWidth="200">
-                                <Run FontSize="15" FontWeight="Bold">RSWARE.STORE</Run>
-                                <LineBreak />
-                                <Run FontSize="11" FontWeight="SemiBold">Executors &amp; externals: Potassium, Volt, Severe, Matrix Hub</Run>
-                            </TextBlock>
+                    <ui:CardAction Margin="0,4,0,0" TabIndex="1" Icon="Settings28" Command="{Binding LaunchSettingsCommand, Mode=OneTime}">
+                        <StackPanel>
+                            <TextBlock FontSize="14" Text="{x:Static resources:Strings.LaunchMenu_ConfigureSettings}" />
                         </StackPanel>
-                    </Border>
+                    </ui:CardAction>
+
+                    <ui:CardAction Margin="0,8,0,0" TabIndex="2" Icon="ArrowReset24" Command="{Binding ResetToStockCommand, Mode=OneTime}">
+                        <StackPanel>
+                            <TextBlock FontSize="14" TextWrapping="Wrap" Text="Reset to non-ExploitStrap setup" />
+                            <TextBlock Margin="0,2,0,0" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       Text="Hand Roblox back to normal so you can use Volt or other non-bootstrapper tools. Re-hooks when you next launch through ExploitStrap." />
+                        </StackPanel>
+                    </ui:CardAction>
                 </StackPanel>
             </Grid>
-
-            <StackPanel Grid.Column="1" Margin="16">
-                <ui:CardAction Icon="ArrowRight12" TabIndex="0" Command="{Binding LaunchRobloxCommand, Mode=OneTime}">
-                    <StackPanel>
-                        <TextBlock FontSize="14" Text="{x:Static resources:Strings.LaunchMenu_LaunchRoblox}" />
-                    </StackPanel>
-                </ui:CardAction>
-
-                <ui:CardAction Margin="0,8,0,0" TabIndex="1" Icon="Settings28" Command="{Binding LaunchSettingsCommand, Mode=OneTime}">
-                    <StackPanel>
-                        <TextBlock FontSize="14" Text="{x:Static resources:Strings.LaunchMenu_ConfigureSettings}" />
-                    </StackPanel>
-                </ui:CardAction>
-
-                <ui:CardAction Margin="0,8,0,0" TabIndex="2" Icon="ArrowReset24" Command="{Binding ResetToStockCommand, Mode=OneTime}">
-                    <StackPanel>
-                        <TextBlock FontSize="14" Text="Reset to non-ExploitStrap setup" />
-                        <TextBlock Margin="0,2,0,0" FontSize="11" TextWrapping="Wrap"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Text="Hand Roblox back to normal so you can use Volt or other non-bootstrapper tools. Re-hooks when you next launch through ExploitStrap." />
-                    </StackPanel>
-                </ui:CardAction>
-
-            </StackPanel>
         </Grid>
     </Grid>
 </base:WpfUiWindow>

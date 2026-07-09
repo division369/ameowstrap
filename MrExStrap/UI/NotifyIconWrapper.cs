@@ -1,6 +1,7 @@
 using ExploitStrap.Integrations;
 using ExploitStrap.UI.Elements.About;
 using ExploitStrap.UI.Elements.ContextMenu;
+using ExploitStrap.Utility;
 
 namespace ExploitStrap.UI
 {
@@ -58,32 +59,28 @@ namespace ExploitStrap.UI
         {
             if (_activityWatcher is null)
                 return;
-            
-            string? serverLocation = await _activityWatcher.Data.QueryServerLocation();
 
-            if (string.IsNullOrEmpty(serverLocation))
-            {
-                ShowAlert(
-                    string.Format(Strings.Dialog_Connectivity_UnableToConnect, "ipinfo.io"),
-                    Strings.ActivityWatcher_LocationQueryFailed,
-                    10,
-                    null
-                );
+            var data = _activityWatcher.Data;
 
-                return;
-            }
+            // The server IP is already parsed out of the Roblox logs (no auth, no rate limit), so we
+            // can resolve the datacenter region straight away. Best-effort — may be unavailable.
+            string? region = data.MachineAddressValid
+                ? await RobloxDatacenters.ResolveRegionAsync(data.MachineAddress)
+                : null;
 
-            string title = _activityWatcher.Data.ServerType switch
+            string title = data.ServerType switch
             {
                 ServerType.Public => Strings.ContextMenu_ServerInformation_Notification_Title_Public,
                 ServerType.Private => Strings.ContextMenu_ServerInformation_Notification_Title_Private,
                 ServerType.Reserved => Strings.ContextMenu_ServerInformation_Notification_Title_Reserved,
-                _ => ""
+                _ => App.ProjectName
             };
+
+            string regionText = string.IsNullOrEmpty(region) ? Strings.Common_NotAvailable : region;
 
             ShowAlert(
                 title,
-                String.Format(Strings.ContextMenu_ServerInformation_Notification_Text, serverLocation),
+                $"Region: {regionText}\nClick for more information",
                 10,
                 (_, _) => _menuContainer.ShowServerInformationWindow()
             );

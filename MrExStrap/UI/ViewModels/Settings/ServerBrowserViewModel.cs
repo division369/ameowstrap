@@ -28,6 +28,7 @@ namespace ExploitStrap.UI.ViewModels.Settings
             ServersView = CollectionViewSource.GetDefaultView(Servers);
             ServersView.Filter = FilterRow;
             RegionFilters.Add(AllRegions);
+            ApplySort();
         }
 
         public ObservableCollection<ServerRowViewModel> Servers { get; } = new();
@@ -46,6 +47,44 @@ namespace ExploitStrap.UI.ViewModels.Settings
                 _selectedRegionFilter = string.IsNullOrEmpty(value) ? AllRegions : value;
                 OnPropertyChanged(nameof(SelectedRegionFilter));
                 ServersView.Refresh();
+            }
+        }
+
+        public IReadOnlyList<string> SortOptions { get; } = new[] { "Lowest ping", "Fewest players", "Most players", "Highest FPS" };
+
+        private string _selectedSort = "Lowest ping";
+        public string SelectedSort
+        {
+            get => _selectedSort;
+            set
+            {
+                _selectedSort = string.IsNullOrEmpty(value) ? "Lowest ping" : value;
+                OnPropertyChanged(nameof(SelectedSort));
+                ApplySort();
+            }
+        }
+
+        // Fetch emptiest-first when the user wants fewest players, so the loaded page actually holds the
+        // quiet servers; otherwise the standard fullest-first page. (Ping/FPS just sort what's loaded.)
+        private int FetchSortOrder => _selectedSort == "Fewest players" ? 1 : 2;
+
+        private void ApplySort()
+        {
+            ServersView.SortDescriptions.Clear();
+            switch (_selectedSort)
+            {
+                case "Fewest players":
+                    ServersView.SortDescriptions.Add(new SortDescription(nameof(ServerRowViewModel.Playing), ListSortDirection.Ascending));
+                    break;
+                case "Most players":
+                    ServersView.SortDescriptions.Add(new SortDescription(nameof(ServerRowViewModel.Playing), ListSortDirection.Descending));
+                    break;
+                case "Highest FPS":
+                    ServersView.SortDescriptions.Add(new SortDescription(nameof(ServerRowViewModel.Fps), ListSortDirection.Descending));
+                    break;
+                default: // Lowest ping
+                    ServersView.SortDescriptions.Add(new SortDescription(nameof(ServerRowViewModel.PingSortKey), ListSortDirection.Ascending));
+                    break;
             }
         }
 
@@ -85,6 +124,7 @@ namespace ExploitStrap.UI.ViewModels.Settings
         public ICommand DetectRegionCommand => new AsyncRelayCommand<ServerRowViewModel?>(DetectRegionAsync);
         public ICommand DetectAllRegionsCommand => new AsyncRelayCommand(DetectAllRegionsAsync);
         public ICommand JoinCommand => new RelayCommand<ServerRowViewModel?>(JoinServer);
+        public ICommand JoinEmptiestCommand => new AsyncRelayCommand(JoinEmptiestAsync);
 
         // Accepts a raw place id, or a roblox.com game link (…/games/1234567/Name), and pulls the id out.
         private static long ParsePlaceId(string input)
@@ -123,7 +163,7 @@ namespace ExploitStrap.UI.ViewModels.Settings
 
             try
             {
-                var resp = await ServerBrowserClient.FetchServersAsync(placeId, append ? _cursor : null);
+                var resp = await ServerBrowserClient.FetchServersAsync(placeId, append ? _cursor : null, FetchSortOrder);
 
                 if (resp is null)
                 {
@@ -258,23 +298,67 @@ namespace ExploitStrap.UI.ViewModels.Settings
             if (row is null)
                 return;
 
+            JoinInstance(row.PlaceId, row.JobId);
+        }
+
+        // Same path the "rejoin server" feature uses: hand Roblox the deep link and let it join the
+        // specific instance as your currently signed-in account. It inherits the FastFlags and mods
+        // ExploitStrap already wrote to the installed client.
+        private void JoinInstance(long placeId, string jobId)
+        {
             try
             {
-                // Same path the "rejoin server" feature uses: hand Roblox the deep link and let it join
-                // the specific instance as your currently signed-in account. It inherits the FastFlags and
-                // mods ExploitStrap already wrote to the installed client.
                 string playerPath = new RobloxPlayerData().ExecutablePath;
-                string deeplink = $"roblox://experiences/start?placeId={row.PlaceId}&gameInstanceId={row.JobId}";
+                string deeplink = $"roblox://experiences/start?placeId={placeId}&gameInstanceId={jobId}";
 
                 Process.Start(playerPath, deeplink);
 
-                string shortId = row.JobId.Length > 8 ? row.JobId[..8] : row.JobId;
-                Status = $"Joining server {shortId}… — Roblox is launching.";
+                string shortId = jobId.Length > 8 ? jobId[..8] : jobId;
+                Status = $"Joining server {shortId}… Roblox is launching.";
             }
             catch (Exception ex)
             {
-                App.Logger.WriteException(LOG_IDENT + "::JoinServer", ex);
+                App.Logger.WriteException(LOG_IDENT + "::JoinInstance", ex);
                 Status = $"Couldn't launch Roblox — {ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        // Find + join the least-populated public server of the entered place, in one shot (no need to
+        // Load the list first). Needs no saved account.
+        private async Task JoinEmptiestAsync()
+        {
+            if (IsBusy)
+                return;
+
+            long placeId = ParsePlaceId(PlaceIdInput);
+            if (placeId <= 0)
+            {
+                Status = "Enter a Roblox place ID or paste a game link first.";
+                return;
+            }
+
+            IsBusy = true;
+            Status = "Finding the emptiest server…";
+            try
+            {
+                var server = await ServerBrowserClient.GetEmptiestServerAsync(placeId);
+                if (server is null || string.IsNullOrEmpty(server.Id))
+                {
+                    Status = "Couldn't find a joinable public server right now — try again, or Load servers to browse.";
+                    return;
+                }
+
+                Status = $"Joining the emptiest server ({server.Playing}/{server.MaxPlayers})…";
+                JoinInstance(placeId, server.Id);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT + "::JoinEmptiest", ex);
+                Status = $"Couldn't find a server — {ex.GetType().Name}: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
 
@@ -342,6 +426,7 @@ namespace ExploitStrap.UI.ViewModels.Settings
         public string PlayersText => MaxPlayers > 0 ? $"{Playing}/{MaxPlayers}" : Playing.ToString();
         public string PingText => Ping > 0 ? $"{Ping} ms" : "—";
         public string FpsText => Fps > 0 ? $"{Fps:0} FPS" : "—";
+        public int PingSortKey => Ping > 0 ? Ping : int.MaxValue;
 
         private string _region = "";
         public string Region

@@ -18,7 +18,33 @@
         <TextBlock Margin="0,0,0,4" Text="BanAsync tools" FontSize="18" FontWeight="SemiBold" />
         <TextBlock Margin="0,0,0,12" TextWrapping="Wrap" FontSize="13"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                   Text="Trace cleanup, network adapter MAC spoofing, and MachineGuid randomization. Aimed at the same surface Roblox's BanAsync detection looks at. Use at your own risk on your own machine." />
+                   Text="Clean Roblox traces and spoof your MAC / MachineGuid. Use on your own machine." />
+
+        <!-- Device-ban clarifier: these tools are for account / IP-level traces, NOT hardware bans.
+             Point users who are hardware-banned at a dedicated HWID spoofer instead. -->
+        <Border Margin="0,0,0,12" Padding="14,12" CornerRadius="8" BorderThickness="1.5"
+                Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                BorderBrush="{DynamicResource SystemFillColorCautionBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon Grid.Column="0" Symbol="ShieldKeyhole24" FontSize="26" VerticalAlignment="Center" Margin="0,0,14,0" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Text="Doesn't cover device bans" />
+                    <TextBlock FontSize="12.5" Margin="0,3,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="These tools clear account and IP-level ban traces — they don't beat a hardware (device / HWID) ban. If you're device-banned, a dedicated HWID spoofer works better." />
+                </StackPanel>
+                <ui:Button Grid.Column="2" VerticalAlignment="Center" Margin="14,0,0,0" Appearance="Primary"
+                           Icon="ArrowDownload24" Content="Get ByGoneSpoofer"
+                           Command="vmroot:GlobalViewModel.OpenWebpageCommand"
+                           CommandParameter="https://github.com/nitaybl/ByGoneSpoofer/releases/download/4.4.0/ByGoneSpoofer.exe" />
+            </Grid>
+        </Border>
 
         <!-- Volt executor plug (Hyperion emulator + built-in HWID spoofer) — contextual to BanAsync. -->
         <Border Margin="0,0,0,12" Padding="16,14" CornerRadius="8" Cursor="Hand"
@@ -48,7 +74,7 @@
                     </StackPanel>
                     <TextBlock FontSize="12.5" Margin="0,4,0,0" TextWrapping="Wrap"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Text="A Roblox script executor with a Hyperion emulator and a built-in HWID spoofer — the strongest executor to pair with BanAsync's trace cleaning and MAC / MachineGuid spoofing." />
+                               Text="A script executor with a Hyperion emulator and built-in HWID spoofer — the strongest one to pair with BanAsync." />
                 </StackPanel>
                 <ui:Button Grid.Column="2" VerticalAlignment="Center" Margin="14,0,0,0" Appearance="Primary"
                            Icon="Cart24" Content="Get Volt"
@@ -57,9 +83,7 @@
             </Grid>
         </Border>
 
-        <!-- Elevation banner — visible when ExploitStrap is NOT running as administrator.
-             The "Relaunch as administrator" button re-spawns the current exe with the
-             runas verb so Windows pops the UAC prompt for the user. -->
+        <!-- Elevation banner — visible when ExploitStrap is NOT running as administrator. -->
         <Border Margin="0,0,0,8" Padding="12,10" CornerRadius="4"
                 Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
                 BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
@@ -100,35 +124,35 @@
         <TextBlock Margin="0,10,0,4" Text="Clean Roblox traces" FontSize="15" FontWeight="SemiBold" />
         <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" FontSize="12"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                   Text="Closes Roblox, wipes local caches, logs, prefetch entries, and HKCU registry, so the next launch looks like a fresh client to BanAsync. ExploitStrap's own settings stay untouched." />
+                   Text="Closes Roblox and wipes its caches, logs, and HKCU registry so the next launch looks fresh. Your ExploitStrap settings stay untouched." />
 
         <controls:OptionControl
             Header="Preserve in-game settings"
-            Description="Backs up GlobalBasicSettings_*.xml before the wipe and restores it after, so your camera/graphics/keybind choices survive.">
+            Description="Keeps your camera / graphics / keybind choices through the wipe.">
             <ui:ToggleSwitch IsChecked="{Binding PreserveInGameSettings, Mode=TwoWay}" />
         </controls:OptionControl>
 
         <controls:OptionControl
             Header="Preserve vanilla Roblox FastFlags"
-            Description="Holds onto ClientAppSettings.json / ClientSettings.json across the wipe. If you only use ExploitStrap-managed FastFlags this doesn't matter — those live elsewhere and are never deleted.">
+            Description="Keeps Roblox's own ClientAppSettings across the wipe. Doesn't affect ExploitStrap's flags.">
             <ui:ToggleSwitch IsChecked="{Binding PreserveFastFlags, Mode=TwoWay}" />
         </controls:OptionControl>
 
         <controls:OptionControl
             Header="Include Roblox Studio folders"
-            Description="Also wipe Studio caches. Off by default since the cleanup is aimed at the player.">
+            Description="Also wipe Studio caches. Off by default.">
             <ui:ToggleSwitch IsChecked="{Binding IncludeStudioFolders, Mode=TwoWay}" />
         </controls:OptionControl>
 
         <controls:OptionControl
-            Header="Also wipe downloaded Roblox installs (Versions)"
-            Description="Deletes ExploitStrap's Versions folder — every downloaded Roblox client across all profiles. OFF by default: this forces a full re-download on the next launch and does NOT help with ban traces (the Roblox binaries aren't unique to you). Turn it on only if you want a completely clean slate.">
+            Header="Also wipe downloaded Roblox installs"
+            Description="Deletes every downloaded Roblox client — forces a full re-download and doesn't help with ban traces. Off by default.">
             <ui:ToggleSwitch IsChecked="{Binding CleanMrExVersions, Mode=TwoWay}" />
         </controls:OptionControl>
 
         <controls:OptionControl
             Header="Also clear Roblox browser cookies"
-            Description="Wipes only the cookies that roblox.com and rbxcdn.com have stored in any browsers you have installed (Chrome, Edge, Firefox, Brave, Opera, Vivaldi). Your other site cookies (Gmail, banking, Discord, everything else) are NOT touched. Close your browsers first — cookie files are locked while the browser is open and locked ones get skipped with a warning in the log.">
+            Description="Clears only roblox.com / rbxcdn.com cookies from your browsers. Other sites aren't touched. Close your browsers first.">
             <ui:ToggleSwitch IsChecked="{Binding ClearBrowserCookies, Mode=TwoWay}" />
         </controls:OptionControl>
 
@@ -140,7 +164,7 @@
         <TextBlock Margin="0,24,0,4" Text="MAC address spoofing" FontSize="15" FontWeight="SemiBold" />
         <TextBlock Margin="0,0,0,4" TextWrapping="Wrap" FontSize="12"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                   Text="Writes a NetworkAddress override under HKLM and bounces the adapter so the new MAC takes effect. Virtual and VPN adapters are filtered out. Needs administrator privileges." />
+                   Text="Randomizes your network adapters' MAC addresses. VPN / virtual adapters are skipped. Needs administrator." />
 
         <StackPanel>
 
@@ -156,25 +180,25 @@
 
             <controls:OptionControl Margin="0,8,0,0"
                 Header="Advanced mode"
-                Description="Off: spoof every detected adapter with a random MAC. On: pick one adapter and (optionally) type a specific MAC.">
+                Description="Pick one adapter and optionally type a MAC. Off = randomize every adapter.">
                 <ui:ToggleSwitch IsChecked="{Binding AdvancedMode, Mode=TwoWay}" />
             </controls:OptionControl>
 
             <controls:OptionControl Margin="0,8,0,0"
                 Header="OUI mirror"
-                Description="Keep the original vendor prefix (first 3 bytes) and only randomize the last 3. Spoofed MAC still looks like it's from the same vendor as your real card.">
+                Description="Keep your card's vendor prefix and randomize the rest.">
                 <ui:ToggleSwitch IsChecked="{Binding OuiMirror, Mode=TwoWay}" />
             </controls:OptionControl>
 
             <controls:OptionControl Margin="0,8,0,0"
                 Header="Refresh DHCP after spoof (optional)"
-                Description="Not required for BanAsync. The disable/enable cycle ExploitStrap already runs on the adapter releases your DHCP lease cleanly, so this is purely an optional belt-and-suspenders pass for overly paranoid users. Side effects if you turn it on: brief network outage, dropped VPN/voice calls, possible captive-portal re-trigger.">
+                Description="Renews your DHCP lease after spoofing. Causes a brief network drop — leave off unless you want it.">
                 <ui:ToggleSwitch IsChecked="{Binding DhcpRefreshAfterSpoof, Mode=TwoWay}" />
             </controls:OptionControl>
 
             <controls:OptionControl Margin="0,8,0,0"
-                Header="Persistent (keep MAC change after ExploitStrap closes)"
-                Description="Default ON. The spoofed MAC is written to the Windows registry under HKLM and stays applied across ExploitStrap closing, being uninstalled, AND reboots — the same way Technitium MAC Address Changer does it. Turn OFF if you want ExploitStrap to clear the registry override on its own exit (the MAC still stays active for the current Windows session and reverts on next reboot). Either way, the Revert MAC button works.">
+                Header="Persistent"
+                Description="Keeps the spoofed MAC after ExploitStrap closes and across reboots. Default on. Revert still works either way.">
                 <ui:ToggleSwitch IsChecked="{Binding Persistent, Mode=TwoWay}" />
             </controls:OptionControl>
 
@@ -196,7 +220,7 @@
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Text="{Binding OriginalMacFormatted, Mode=OneWay, StringFormat='Original MAC: {0}'}" />
 
-                <TextBlock Margin="0,12,0,4" Text="Custom MAC (leave blank to use a random one)" FontWeight="SemiBold" />
+                <TextBlock Margin="0,12,0,4" Text="Custom MAC (leave blank for random)" FontWeight="SemiBold" />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -209,31 +233,19 @@
                 </Grid>
             </StackPanel>
 
-            <!-- Simple-mode hint -->
-            <Border Margin="0,8,0,0" Padding="12,8" CornerRadius="4"
-                    Background="{DynamicResource ControlFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1"
-                    Visibility="{Binding SimpleVisibility, Mode=OneWay}">
-                <TextBlock TextWrapping="Wrap" FontSize="12"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                           Text="Simple mode will randomize every detected adapter's MAC in one pass. Toggle Advanced mode above to pick a specific adapter or type a MAC yourself." />
-            </Border>
-
-            <!-- Action buttons — admin-only. ToolTipService.ShowOnDisabled keeps the
-                 tooltip visible when greyed out so the user understands WHY they can't
-                 click instead of staring at a dead button. -->
+            <!-- Action buttons — admin-only. -->
             <StackPanel Orientation="Horizontal" Margin="0,12,0,0"
                         IsEnabled="{Binding IsElevated, Mode=OneTime}">
                 <ui:Button MinWidth="140" Icon="Connector24" Content="Spoof MAC"
                            Appearance="Primary"
                            Command="{Binding SpoofCommand, Mode=OneTime}"
                            ToolTipService.ShowOnDisabled="True"
-                           ToolTip="Writes the new MAC to the adapter's NetworkAddress registry value. Requires administrator privileges — use the 'Relaunch as administrator' button at the top of this page if disabled." />
+                           ToolTip="Writes a new MAC to the adapter. Needs administrator — use 'Relaunch as administrator' above if this is greyed out." />
                 <ui:Button MinWidth="140" Margin="8,0,0,0" Icon="ArrowUndo24" Content="Revert MAC"
                            Appearance="Danger"
                            Command="{Binding RevertCommand, Mode=OneTime}"
                            ToolTipService.ShowOnDisabled="True"
-                           ToolTip="Clears the registry MAC override so Windows uses the hardware MAC again. Requires administrator privileges." />
+                           ToolTip="Restores the hardware MAC. Needs administrator." />
             </StackPanel>
 
         </StackPanel>
@@ -242,30 +254,11 @@
         <TextBlock Margin="0,24,0,4" Text="MachineGuid (optional)" FontSize="15" FontWeight="SemiBold" />
         <TextBlock Margin="0,0,0,8" TextWrapping="Wrap" FontSize="12"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                   Text="Same story as DHCP refresh — not required for BanAsync. This is an optional extra for users being overly paranoid about every identifier on their PC. Keep it as a tool in case you need it." />
-
-        <Border Margin="0,0,0,8" Padding="12,10" CornerRadius="4"
-                Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
-                BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
-                BorderThickness="0,0,0,2">
-            <StackPanel>
-                <TextBlock FontWeight="SemiBold" FontSize="13" Text="What is MachineGuid?" />
-                <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" FontSize="12"
-                           Text="A unique ID Windows wrote to your install the day it was first set up. Some apps use it as a quiet 'is this the same PC?' check." />
-
-                <TextBlock Margin="0,10,0,0" FontWeight="SemiBold" FontSize="13" Text="Pros — what randomizing it gets you" />
-                <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" FontSize="12"
-                           Text="One more identifier swapped out. Anything keying off MachineGuid sees a fresh PC." />
-
-                <TextBlock Margin="0,10,0,0" FontWeight="SemiBold" FontSize="13" Text="Cons — what could break" />
-                <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" FontSize="12"
-                           Text="Microsoft Office can lose activation. Some paid apps tied to your machine will ask for reactivation. Windows telemetry pairing resets (harmless). ExploitStrap saves your original value the first time you randomize so you can restore it from this page at any point." />
-            </StackPanel>
-        </Border>
+                   Text="Randomizes a Windows machine identifier. Not needed for BanAsync — an extra for the extra-cautious. Heads up: can drop Office / app activation until you restore it. Your original value is saved so you can put it back." />
 
         <controls:OptionControl
             Header="I understand the risk"
-            Description="Tick this to unlock the Randomize / Restore buttons. Stops you from changing MachineGuid by accident.">
+            Description="Unlocks the Randomize / Restore buttons.">
             <ui:ToggleSwitch IsChecked="{Binding MachineGuidAcknowledged, Mode=TwoWay}" />
         </controls:OptionControl>
 
@@ -282,11 +275,11 @@
                        Appearance="Primary"
                        Command="{Binding RandomizeMachineGuidCommand, Mode=OneTime}"
                        ToolTipService.ShowOnDisabled="True"
-                       ToolTip="Writes a new random GUID to HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid. Requires administrator privileges AND the 'I understand the risk' toggle above." />
+                       ToolTip="Needs administrator AND the 'I understand the risk' toggle above." />
             <ui:Button MinWidth="180" Margin="8,0,0,0" Icon="ArrowUndo24" Content="Restore original"
                        Command="{Binding RestoreMachineGuidCommand, Mode=OneTime}"
                        ToolTipService.ShowOnDisabled="True"
-                       ToolTip="Writes the original MachineGuid (saved on the first randomize) back to the registry. Requires administrator privileges AND the 'I understand the risk' toggle above." />
+                       ToolTip="Writes your saved original MachineGuid back. Needs administrator AND the toggle above." />
         </StackPanel>
 
         <!-- ===== Activity log ===== -->

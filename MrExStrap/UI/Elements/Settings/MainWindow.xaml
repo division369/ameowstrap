@@ -58,6 +58,7 @@
             <ui:NavigationFluent x:Name="RootNavigation" Grid.Row="1" Grid.Column="0" Margin="0,0,12,0" Frame="{Binding ElementName=RootFrame}" SelectedPageIndex="0">
                 <ui:NavigationFluent.Items>
                     <ui:NavigationItem Content="Home" PageType="{x:Type pages:HomePage}" Icon="Home24" Tag="home" />
+                    <ui:NavigationItem Content="News" PageType="{x:Type pages:NewsPage}" Icon="News20" Tag="news" />
 
                     <ui:NavigationHeader Text="LAUNCH" />
                     <ui:NavigationItem Content="{x:Static resources:Strings.Menu_Behaviour_Title}" PageType="{x:Type pages:BehaviourPage}" Icon="PlaySettings20" Tag="bootstrapper" />
@@ -79,6 +80,11 @@
                     <ui:NavigationItem Content="{x:Static resources:Strings.Menu_Mods_Title}" PageType="{x:Type pages:ModsPage}" Icon="WrenchScrewdriver20" Tag="mods" />
                     <ui:NavigationItem Content="{x:Static resources:Strings.Menu_FastFlags_Title}" PageType="{x:Type pages:FastFlagsPage}" Icon="Flag24" Tag="fastflags" />
                     <ui:NavigationItem Content="{x:Static resources:Strings.Menu_Appearance_Title}" PageType="{x:Type pages:AppearancePage}" Icon="PaintBrush24" Tag="appearance" />
+
+                    <ui:NavigationHeader Text="TOOLS" />
+                    <ui:NavigationItem Content="Obfuscator" PageType="{x:Type pages:ObfuscatorPage}" Icon="LockClosed24" Tag="obfuscator" />
+                    <ui:NavigationItem Content="Deobfuscator" PageType="{x:Type pages:DeobfuscatorPage}" Icon="LockOpen24" Tag="deobfuscator" />
+                    <ui:NavigationItem Content="Link Bypasser" PageType="{x:Type pages:LinkBypasserPage}" Icon="Link24" Tag="linkbypasser" />
                 </ui:NavigationFluent.Items>
                 <ui:NavigationFluent.Footer>
                     <ui:NavigationItem Content="Settings" PageType="{x:Type pages:ExploitStrapPage}" Icon="Settings24" Tag="shortcuts" />
@@ -96,10 +102,8 @@
             </Grid>
         </Grid>
 
-        <StatusBar x:Name="RootStatusBar" Grid.Row="2" Padding="14,10" BorderThickness="0,1,0,0">
-            <StatusBar.Background>
-                <SolidColorBrush Color="{ui:ThemeResource ApplicationBackgroundColor}" Opacity="0" />
-            </StatusBar.Background>
+        <StatusBar x:Name="RootStatusBar" Grid.Row="2" Padding="14,10" BorderThickness="0,1,0,0"
+                   Background="{DynamicResource GlassFillBrush}" BorderBrush="{DynamicResource GlassBorderBrush}"><!-- frosted footer bar -->
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Grid>

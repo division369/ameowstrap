@@ -6,8 +6,9 @@
         ExploitStrap brand palette, taken from the logo: neon cyan that fades to green, with
         purple highlights, on a deep technical-dark background. The control accent (toggles,
         buttons, links) is applied in code via Wpf.Ui.Appearance.Accent.Apply(BrandAccent) in
-        WpfUiWindow.ApplyTheme — these resources are for brand flourishes: headers, the wordmark,
-        the gradient launch CTA, status readouts.
+        WpfUiWindow.ApplyTheme. This dictionary is merged LAST in App.xaml, so anything defined
+        here overrides the WPF-UI base tokens app-wide. The glass control styles live in the
+        Glass.xaml dictionary that is merged right after this one.
     -->
 
     <Color x:Key="BrandCyanColor">#FF22D3EE</Color>
@@ -24,10 +25,38 @@
     <SolidColorBrush x:Key="BrandSurfaceBrush" Color="{StaticResource BrandSurfaceColor}" />
     <SolidColorBrush x:Key="BrandHairlineBrush" Color="{StaticResource BrandHairlineColor}" />
 
+    <!--
+        Deep-dark surface retint. Override the WPF-UI base surface tokens so the WHOLE app reads
+        as one cohesive deep technical-dark surface instead of stock grey (#202020). Cards then
+        sit on this as translucent glass. Dark-only, so plain (non-tracking) brushes are fine.
+    -->
+    <Color x:Key="ApplicationBackgroundColor">#FF0B0F14</Color>
+    <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FF0B0F14" />
+
+    <!-- ===== Glass tokens ===== -->
+    <!-- Translucent white over the deep ink reads as cool frosted glass. -->
+    <SolidColorBrush x:Key="GlassFillBrush" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="GlassFillHoverBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="GlassBorderBrush" Color="#2EFFFFFF" />
+    <!-- Faint cyan-tinted glass for hero surfaces. -->
+    <SolidColorBrush x:Key="GlassTintBrush" Color="#141FB6D8" />
+    <!-- Top-light luminous edge for the frosted look. -->
+    <LinearGradientBrush x:Key="GlassEdgeBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#33FFFFFF" Offset="0" />
+        <GradientStop Color="#0AFFFFFF" Offset="0.5" />
+        <GradientStop Color="#00FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+
     <!-- Signature cyan -> green gradient: wordmark underline, primary CTA, selected-nav accent. -->
     <LinearGradientBrush x:Key="BrandGradientBrush" StartPoint="0,0" EndPoint="1,0">
         <GradientStop Color="{StaticResource BrandCyanColor}" Offset="0" />
         <GradientStop Color="{StaticResource BrandGreenColor}" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Brighter variant for the hovered state of the primary CTA. -->
+    <LinearGradientBrush x:Key="BrandGradientBrightBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#FF5FE4F7" Offset="0" />
+        <GradientStop Color="#FF7BF0A6" Offset="1" />
     </LinearGradientBrush>
 
     <!-- Purple -> cyan -> green diagonal, for larger hero surfaces (Home header, installer). -->
@@ -40,8 +69,40 @@
     <!-- Monospace family for technical readouts: version GUIDs, fast-flag names, channel/status. -->
     <FontFamily x:Key="BrandMonoFont">Consolas</FontFamily>
 
-    <!-- Cyan neon glow for the logo / accent edges. -->
+    <!-- Cyan neon glows for the logo, CTAs and hovered accent edges. -->
     <DropShadowEffect x:Key="BrandGlowEffect" Color="{StaticResource BrandCyanColor}" BlurRadius="18" ShadowDepth="0" Opacity="0.5" />
+    <DropShadowEffect x:Key="BrandGlowSoft" Color="{StaticResource BrandCyanColor}" BlurRadius="14" ShadowDepth="0" Opacity="0.4" />
+    <DropShadowEffect x:Key="BrandGlowStrong" Color="{StaticResource BrandCyanColor}" BlurRadius="30" ShadowDepth="0" Opacity="0.6" />
+    <!-- Soft dark drop shadow for lifting hero cards off the deep ink (used sparingly). -->
+    <DropShadowEffect x:Key="CardShadowEffect" Color="#FF000000" BlurRadius="26" ShadowDepth="3" Direction="270" Opacity="0.5" />
+
+    <!-- ===== Type scale ===== -->
+    <!-- Rubik (light, elegant) for large display text; the default Segoe UI for everything else. -->
+    <Style x:Key="DisplayText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Rubik}" />
+        <Setter Property="FontSize" Value="30" />
+        <Setter Property="FontWeight" Value="Light" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style x:Key="TitleText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style x:Key="SubtitleText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style x:Key="BodyText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style x:Key="CaptionText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+    </Style>
 
     <!-- Uppercase, dimmed group label for the sectioned navigation and page section headers. -->
     <Style x:Key="BrandSectionHeader" TargetType="TextBlock">
@@ -55,17 +116,22 @@
     <!-- Monospace technical readout in brand cyan. -->
     <Style x:Key="BrandMono" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource BrandMonoFont}" />
-        <Setter Property="Foreground" Value="{StaticResource BrandCyanBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandCyanBrush}" />
     </Style>
 
-    <!-- Elevated surface tile for the Home dashboard status cards. -->
+    <!-- Elevated glass tile for the Home dashboard status cards; lights up cyan on hover. -->
     <Style x:Key="HomeTile" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource BrandSurfaceBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrandHairlineBrush}" />
+        <Setter Property="Background" Value="{DynamicResource GlassFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Padding" Value="16,14" />
         <Setter Property="Margin" Value="6" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource BrandCyanBrush}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>

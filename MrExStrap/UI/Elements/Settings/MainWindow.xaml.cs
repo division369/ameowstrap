@@ -30,6 +30,9 @@ namespace ExploitStrap.UI.Elements.Settings
             
             InitializeComponent();
 
+            // Show the app version in the window + taskbar title, e.g. "ExploitStrap - Settings - v420.35".
+            Title = RootTitleBar.Title = $"ExploitStrap - Settings - v{App.Version}";
+
             App.Logger.WriteLine("MainWindow", "Initializing settings window");
 
             if (showAlreadyRunningWarning)

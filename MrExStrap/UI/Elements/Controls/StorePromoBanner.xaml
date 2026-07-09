@@ -7,10 +7,10 @@
              xmlns:vm="clr-namespace:ExploitStrap.UI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="760">
     <!-- Reusable rsware.store plug. Whole card is clickable; the Shop now button is the explicit CTA. -->
-    <Border Margin="0,0,0,12" Padding="16,12" CornerRadius="8" Cursor="Hand" ToolTip="https://rsware.store/"
-            Background="{StaticResource BrandSurfaceBrush}" BorderThickness="1">
+    <Border Margin="0,0,0,12" Padding="16,12" CornerRadius="10" Cursor="Hand" ToolTip="https://rsware.store/"
+            Background="{DynamicResource GlassFillBrush}" BorderThickness="1">
         <Border.BorderBrush>
-            <SolidColorBrush Color="{StaticResource BrandPurpleColor}" Opacity="0.55" />
+            <SolidColorBrush Color="{DynamicResource BrandPurpleColor}" Opacity="0.55" />
         </Border.BorderBrush>
         <Border.InputBindings>
             <MouseBinding MouseAction="LeftClick" Command="vm:GlobalViewModel.OpenWebpageCommand" CommandParameter="https://rsware.store/" />
@@ -30,7 +30,7 @@
                     <TextBlock FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="Get your tools at rsware.store" />
                     <Border Margin="10,0,0,0" Padding="7,2" CornerRadius="4" VerticalAlignment="Center"
-                            Background="{StaticResource BrandPurpleBrush}">
+                            Background="{DynamicResource BrandPurpleBrush}">
                         <TextBlock FontSize="10" FontWeight="Bold" Foreground="White" Text="FIRST BUYERS 5% OFF" />
                     </Border>
                 </StackPanel>

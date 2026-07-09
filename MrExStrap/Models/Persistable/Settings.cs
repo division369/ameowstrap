@@ -23,6 +23,15 @@ namespace ExploitStrap.Models.Persistable
         public string? SelectedCustomTheme { get; set; } = null;
         public WebEnvironment WebEnvironment { get; set; } = WebEnvironment.Production;
 
+        // user UI theming (ExploitStrap fork feature) — a live-editable brand palette, effect toggles
+        // and a custom app icon. Applied by Utility.ThemeManager.
+        public ThemePalette Palette { get; set; } = new();
+        public string SelectedThemePreset { get; set; } = "Default";
+        public bool EnableAurora { get; set; } = true;
+        public bool EnableGlass { get; set; } = true;
+        public bool EnableGlow { get; set; } = true;
+        public string CustomAppIconLocation { get; set; } = "";
+
         // integration configuration
         public bool EnableActivityTracking { get; set; } = true;
         public bool UseDiscordRichPresence { get; set; } = true;
@@ -133,6 +142,10 @@ namespace ExploitStrap.Models.Persistable
         // shared VIP server pulled from rbxservers.xyz. Off by default. (ExploitStrap fork feature)
         public bool EnableVipServerPrompt { get; set; } = false;
 
+        // When on, a normal game launch auto-joins the least-populated public server of that game
+        // (ExploitStrap fork feature — see Bootstrapper.MaybeSelectEmptiestServerAsync).
+        public bool JoinEmptiestServerOnLaunch { get; set; } = false;
+
         // BanAsync tab — trace cleaner + MAC/MachineGuid spoofer. (ExploitStrap fork feature)
         public bool BanAsyncPreserveInGameSettings { get; set; } = true;
         public bool BanAsyncPreserveFastFlags { get; set; } = true;
@@ -163,5 +176,13 @@ namespace ExploitStrap.Models.Persistable
         // time an adapter is spoofed so the UI can show the real hardware MAC next to the
         // current spoofed one, and cleared on revert.
         public Dictionary<string, string> BanAsyncOriginalMacByGuid { get; set; } = new();
+
+        // luaobfuscator.com obfuscation is opt-in and needs the user's own API key. Stored here (local
+        // settings only — never shipped in the repo/binary); blank means the LuaObfuscator engine is off.
+        public string LuaObfuscatorApiKey { get; set; } = "";
+
+        // bypass.tools link-bypasser API key — the user's own, local settings only (never shipped). Blank
+        // means the Link Bypasser is off; users get a key by signing up via the referral link in the tab.
+        public string BypassToolsApiKey { get; set; } = "";
     }
 }

@@ -28,7 +28,7 @@ namespace ExploitStrap.UI.Elements.Base
             // ExploitStrap is dark-only, with the neon-cyan brand accent applied app-wide instead
             // of the Windows system accent so the look stays consistent and on-brand.
             _themeService.SetTheme(ThemeType.Dark);
-            Accent.Apply(BrandAccent, ThemeType.Dark);
+            ExploitStrap.Utility.ThemeManager.ApplyFromSettings();
 
             var dict = new ResourceDictionary { Source = new Uri("pack://application:,,,/UI/Style/Dark.xaml") };
             Application.Current.Resources.MergedDictionaries[customThemeIndex] = dict;

@@ -30,6 +30,12 @@
         </controls:OptionControl>
 
         <controls:OptionControl
+            Header="Join the emptiest server on launch"
+            Description="When on, a normal game launch drops you into the least-populated public server of that game instead of letting Roblox pick. Adds a moment to launch while it finds the server. Only applies to normal game launches — friend joins, Server Browser joins, VIP servers and re-joins are left alone, and it falls back to a normal launch if it can't find one.">
+            <ui:ToggleSwitch IsChecked="{Binding JoinEmptiestServerOnLaunch, Mode=TwoWay}" />
+        </controls:OptionControl>
+
+        <controls:OptionControl
             Header="Confirm non-LIVE launches"
             Description="When on (default), launching Roblox via a profile pinned to an older build pops a yes/no confirmation first. LIVE-channel launches never prompt. Turn this off if you're constantly switching to downgraded builds and don't want the extra click.">
             <ui:ToggleSwitch IsChecked="{Binding ConfirmNonLiveLaunch, Mode=TwoWay}" />
