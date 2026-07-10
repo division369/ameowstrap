@@ -1145,7 +1145,7 @@ Please close any applications that may be using Roblox's files, and relaunch.</v
     <value>Export diagnostic data</value>
   </data>
   <data name="Menu.Bloxstrap.ExportData.Description" xml:space="preserve">
-    <value>Gather information that can be uploaded online to troubleshoot a problem you're having.</value>
+    <value>Build one zip with your settings, all ExploitStrap logs, the latest Roblox client logs, environment info and a health check — everything the maintainer needs to diagnose a crash. Choose where to save it, then send us the file.</value>
   </data>
   <data name="Menu.Bloxstrap.ExportData.ExportConfig" xml:space="preserve">
     <value>ExploitStrap configuration</value>

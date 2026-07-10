@@ -31,9 +31,9 @@ namespace ExploitStrap.UI
             if (crash)
             {
                 info.Append("Roblox closed unexpectedly — it looks like the game crashed.");
-                info.Append("\n\nThis is a crash on **Roblox's** side, not ExploitStrap. The launcher only "
-                    + "downloads and starts the game — Roblox was already running on its own when it stopped, "
-                    + "so there's nothing in ExploitStrap that caused this.");
+                info.Append("\n\nExploitStrap only downloads and launches Roblox, so this is usually a "
+                    + "Roblox-side issue — graphics drivers, an unstable build, or the machine itself. If it "
+                    + "keeps happening, send us your logs so we can rule out anything on our end.");
             }
             else
             {

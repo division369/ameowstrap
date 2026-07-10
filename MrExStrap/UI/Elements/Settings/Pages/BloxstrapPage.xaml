@@ -183,32 +183,12 @@
                         <TextBlock FontSize="14" Text="{x:Static resources:Strings.Menu_Bloxstrap_ExportData_Title}" />
                         <TextBlock FontSize="12" Text="{x:Static resources:Strings.Menu_Bloxstrap_ExportData_Description}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
                     </StackPanel>
-                    <ui:Button Grid.Column="1" MinWidth="100" Margin="0,0,16,0" Icon="CopySelect20" Content="{x:Static resources:Strings.Common_Export}" Command="{Binding ExportDataCommand}">
-                        <ui:Button.Style>
-                            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-                                <Style.Triggers>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding ElementName=ShouldExportConfig, Path=IsChecked}" Value="False" />
-                                            <Condition Binding="{Binding ElementName=ShouldExportLogs, Path=IsChecked}" Value="False" />
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </MultiDataTrigger>
-                                </Style.Triggers>
-                                <Setter Property="IsEnabled" Value="True" />
-                            </Style>
-                        </ui:Button.Style>
-                    </ui:Button>
+                    <ui:Button Grid.Column="1" MinWidth="100" Margin="0,0,16,0" Icon="CopySelect20" Content="{x:Static resources:Strings.Common_Export}" Command="{Binding ExportDataCommand}" />
                 </Grid>
             </ui:CardExpander.Header>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <CheckBox Grid.Column="0" Name="ShouldExportConfig" Content="{x:Static resources:Strings.Menu_Bloxstrap_ExportData_ExportConfig}" IsChecked="{Binding ShouldExportConfig}" />
-                <CheckBox Grid.Column="1" Name="ShouldExportLogs" Content="{x:Static resources:Strings.Menu_Bloxstrap_ExportData_ExportLogs}" IsChecked="{Binding ShouldExportLogs}" />
-            </Grid>
+            <TextBlock FontSize="11" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Text="The zip includes your settings, every ExploitStrap log (including this session), the latest Roblox client logs, environment info and a health check — everything needed to diagnose a crash. Choose where to save it, then send us that one file." />
         </ui:CardExpander>
     </StackPanel>
 </ui:UiPage>

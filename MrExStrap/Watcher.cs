@@ -16,6 +16,11 @@ namespace ExploitStrap
 
         public readonly DiscordRichPresence? RichPresence;
 
+        // If Roblox exits sooner than this after launch AND never reached gameplay, Run() treats it as
+        // a probable crash. Covers the observed 7-40s crash-on-launch window with margin while staying
+        // below where a normal player is reliably in-game. Single knob for tuning.
+        private const int ProbableCrashWindowSeconds = 60;
+
         public Watcher()
         {
             const string LOG_IDENT = "Watcher";
@@ -103,6 +108,8 @@ namespace ExploitStrap
 
         public async Task Run()
         {
+            const string LOG_IDENT = "Watcher::Run";
+
             if (!_lock.IsAcquired || _watcherData is null)
                 return;
 
@@ -137,6 +144,13 @@ namespace ExploitStrap
             // without EnableActivityTracking).
             bool closeCrashHandler = App.Settings.Prop.CloseRobloxCrashHandler;
 
+            // Record when Roblox started so that when the PID poll below exits we can tell a
+            // crash-on-launch from a normal session. The Roblox log file's creation time is the
+            // closest "client actually started" signal we have; fall back to now if it can't be read.
+            DateTime sessionStartUtc;
+            try { sessionStartUtc = new FileInfo(_watcherData.LogFile!).CreationTimeUtc; }
+            catch { sessionStartUtc = DateTime.UtcNow; }
+
             while (Utilities.GetProcessesSafe().Any(x => x.Id == _watcherData.ProcessId))
             {
                 // Froststrap-style memory saver: keep RobloxCrashHandler closed while Roblox runs.
@@ -160,6 +174,35 @@ namespace ExploitStrap
 
             if (App.LaunchSettings.TestModeFlag.Active)
                 Process.Start(Paths.Process, "-settings -testmode");
+
+            // The Roblox PID just disappeared. If it died quickly and never reached gameplay, treat it
+            // as a probable crash and surface the (previously never-fired) crash dialog, whose one-click
+            // export produces a bundle that includes the Roblox client logs. "Never reached gameplay"
+            // (ActivityWatcher never saw 'Replicator created:') is the discriminator: a normal quit
+            // almost always happens after joining, so it's excluded. If activity tracking is off we
+            // can't tell, so we stay quiet. No process handle is held — this rides the PID poll above.
+            TimeSpan sessionLength = DateTime.UtcNow - sessionStartUtc;
+            bool everInGame = (ActivityWatcher?.InGame ?? false) || (ActivityWatcher?.History.Count > 0);
+            bool probableCrash = ActivityWatcher is not null
+                && !everInGame
+                && sessionLength < TimeSpan.FromSeconds(ProbableCrashWindowSeconds);
+
+            if (probableCrash)
+            {
+                App.Logger.WriteLine(LOG_IDENT,
+                    $"Roblox exited after {sessionLength.TotalSeconds:F0}s without reaching in-game — probable crash");
+                try
+                {
+                    // Blocks (self-marshals to the UI dispatcher) until the user dismisses it, which
+                    // also holds off the watcher's teardown/terminate until they're done exporting.
+                    UI.Frontend.ShowPlayerErrorDialog(crash: true);
+                }
+                catch (Exception ex)
+                {
+                    // Never let a dialog failure stop normal watcher teardown.
+                    App.Logger.WriteException(LOG_IDENT, ex);
+                }
+            }
         }
 
         // Froststrap-style memory saver: close RobloxCrashHandler.exe while Roblox runs. It's the

@@ -5,7 +5,6 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
-using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Win32;
 
 using ExploitStrap.Models;
@@ -227,11 +226,7 @@ namespace ExploitStrap.UI.ViewModels.Settings
 
         public Visibility WebEnvironmentVisibility => App.Settings.Prop.DeveloperMode ? Visibility.Visible : Visibility.Collapsed;
 
-        public bool ShouldExportConfig { get; set; } = true;
-
-        public bool ShouldExportLogs { get; set; } = true;
-
-        public ICommand ExportDataCommand => new RelayCommand(ExportData);
+        public ICommand ExportDataCommand => new AsyncRelayCommand(ExportDataAsync);
 
         public ICommand ClearRobloxCacheCommand => new AsyncRelayCommand(ClearRobloxCacheAsync);
 
@@ -311,77 +306,42 @@ namespace ExploitStrap.UI.ViewModels.Settings
             }
         }
 
-        private void ExportData()
+        private async Task ExportDataAsync()
         {
+            const string LOG_IDENT = "ExploitStrapViewModel::ExportDataAsync";
+
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'");
 
-            var dialog = new SaveFileDialog 
-            { 
-                FileName = $"ExploitStrap-export-{timestamp}.zip",
-                Filter = $"{Strings.FileTypes_ZipArchive}|*.zip" 
+            var dialog = new SaveFileDialog
+            {
+                FileName = $"ExploitStrap-diagnostics-{timestamp}.zip",
+                Filter = $"{Strings.FileTypes_ZipArchive}|*.zip"
             };
 
             if (dialog.ShowDialog() != true)
                 return;
 
-            using var memStream = new MemoryStream();
-            using var zipStream = new ZipOutputStream(memStream);
-
-            if (ShouldExportConfig)
+            try
             {
-                var files = new List<string>()
-                {
-                    App.Settings.FileLocation,
-                    App.State.FileLocation,
-                    App.FastFlags.FileLocation
-                };
+                // Reuse the full DiagnosticBundle so the zip the user sends actually contains the
+                // Roblox client logs (roblox-logs/) — that's where a Roblox-side crash is diagnosable,
+                // unlike the old Config/Logs-only export. It also folds in this session's log,
+                // environment info and a health check. quick:false adds the (time-bounded, never-throwing)
+                // health + GitHub probes; it runs on await so the UI thread is never blocked.
+                string bundlePath = await DiagnosticBundle.CreateAsync(quick: false);
 
-                AddFilesToZipStream(zipStream, files, "Config/");
+                // The bundle is written to Paths.DebugOutput; copy it to wherever the user chose to save.
+                File.Copy(bundlePath, dialog.FileName, overwrite: true);
+
+                App.Logger.WriteLine(LOG_IDENT, $"Exported full diagnostic bundle to {dialog.FileName}");
+                Process.Start("explorer.exe", $"/select,\"{dialog.FileName}\"");
             }
-
-            if (ShouldExportLogs && Directory.Exists(Paths.Logs))
+            catch (Exception ex)
             {
-                var files = Directory.GetFiles(Paths.Logs)
-                    .Where(x => !x.Equals(App.Logger.FileLocation, StringComparison.OrdinalIgnoreCase));
-
-                AddFilesToZipStream(zipStream, files, "Logs/");
-            }
-
-            zipStream.CloseEntry();
-            zipStream.Finish();
-            memStream.Position = 0;
-
-            using var outputStream = File.OpenWrite(dialog.FileName);
-            memStream.CopyTo(outputStream);
-
-            Process.Start("explorer.exe", $"/select,\"{dialog.FileName}\"");
-        }
-
-        private void AddFilesToZipStream(ZipOutputStream zipStream, IEnumerable<string> files, string directory)
-        {
-            const string LOG_IDENT = "ExploitStrapViewModel::AddFilesToZipStream";
-
-            foreach (string file in files)
-            {
-                if (!File.Exists(file))
-                    continue;
-
-                try
-                {
-                    using FileStream fileStream = File.OpenRead(file);
-
-                    var entry = new ZipEntry(directory + Path.GetFileName(file));
-                    entry.DateTime = DateTime.Now;
-
-                    zipStream.PutNextEntry(entry);
-
-                    fileStream.CopyTo(zipStream);
-                }
-                catch (IOException ex)
-                {
-                    App.Logger.WriteLine(LOG_IDENT, $"Failed to open '{file}'");
-                    App.Logger.WriteException(LOG_IDENT, ex);
-                }
+                App.Logger.WriteException(LOG_IDENT, ex);
+                Frontend.ShowMessageBox(
+                    $"Couldn't export diagnostic data.\n\nReason: {ex.GetType().Name}: {ex.Message}",
+                    MessageBoxImage.Error);
             }
         }
     }
