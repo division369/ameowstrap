@@ -139,6 +139,7 @@ def verify(paths, sums_path, skip):
     """
     by_hash = {}
     sums = None if skip else parse_sums(sums_path)
+    listed = {digest: name for name, digest in (sums or {}).items()}
     failures = []
 
     for path in paths:
@@ -149,14 +150,23 @@ def verify(paths, sums_path, skip):
 
         if sums is not None:
             expected = sums.get(name)
-            if expected is None:
-                failures.append(f"{name}: not listed in {os.path.basename(sums_path)}")
-            elif expected != digest:
+            if expected == digest:
+                log("  verified against SHA256SUMS")
+            elif expected is not None:
                 failures.append(
                     f"{name}: SHA256SUMS says {expected}, file hashes to {digest}"
                 )
+            elif digest in listed:
+                # Releases before the stable-name asset existed list only the
+                # versioned exe. An unlisted file that is byte-identical to a
+                # listed one is still verified: same bytes, same hash.
+                log(f"  not listed, but byte-identical to {listed[digest]}, "
+                    "which verified")
             else:
-                log("  verified against SHA256SUMS")
+                failures.append(
+                    f"{name}: hashes to {digest}, which matches nothing in "
+                    f"{os.path.basename(sums_path)}"
+                )
 
         by_hash.setdefault(digest, []).append(path)
 
