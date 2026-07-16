@@ -29,6 +29,10 @@ namespace ExploitStrap.Utility
         //   - we're already mid-upgrade (-upgrade flag passed),
         //   - we're in portable mode (the user updates by re-downloading the portable folder),
         //   - or there's another ExploitStrap instance running (likely a background watcher).
+        // Keeps the update-handoff mutex alive until this process exits. See the
+        // acquisition site in UpgradeAsync for the full protocol.
+        private static InterProcessLock? _upgradeHandoffLock;
+
         public static bool IsAutoUpdateEligible()
         {
             if (!App.Settings.Prop.CheckForUpdates)
@@ -184,8 +188,12 @@ namespace ExploitStrap.Utility
                 // Persist settings before we hand off so the new process sees the latest state.
                 App.Settings.Save();
 
-                // Singleton lock so the new exe waits if anything else is mid-update.
-                new InterProcessLock("AutoUpdater");
+                // Handoff lock: the new exe's Installer.HandleUpgrade waits on "AutoUpdater"
+                // (5s) before copying itself over the installed exe. We hold the mutex until
+                // this process exits — the OS abandons it then, which is exactly the "old exe
+                // is gone" signal the waiter needs. Rooted in a static so the GC can't close
+                // the handle early and defeat the wait. Deliberately never disposed.
+                _upgradeHandoffLock = new InterProcessLock("AutoUpdater");
 
                 Process.Start(psi);
                 return UpgradeResult.Success();

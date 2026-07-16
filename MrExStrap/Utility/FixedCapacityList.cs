@@ -17,8 +17,10 @@ namespace ExploitStrap.Utility
 
         public new void Add(T item)
         {
+            // Evict the oldest (index 0), not the newest (Count - 1) — otherwise a full
+            // list churns only its last slot and the cap thrashes instead of behaving FIFO.
             if (Count >= MaxSize)
-                RemoveAt(Count - 1);
+                RemoveAt(0);
             base.Add(item);
         }
     }

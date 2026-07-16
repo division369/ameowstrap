@@ -44,7 +44,7 @@ namespace ExploitStrap.Utility
             using var cts = new CancellationTokenSource(DefaultBudget);
             try
             {
-                var release = await App.GetLatestRelease();
+                var release = await App.GetLatestRelease(cts.Token);
                 if (release is null || string.IsNullOrEmpty(release.TagName))
                     return;
 
@@ -93,7 +93,7 @@ namespace ExploitStrap.Utility
             using var cts = new CancellationTokenSource(DefaultBudget);
             try
             {
-                var info = await Deployment.GetInfo();
+                var info = await Deployment.GetInfo(token: cts.Token);
                 string currentHash = info.VersionGuid;
                 if (string.IsNullOrEmpty(currentHash))
                     return;

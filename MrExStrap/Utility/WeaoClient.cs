@@ -187,6 +187,13 @@ namespace ExploitStrap.Utility
                 return new WeaoResult(Array.Empty<WeaoExploit>(),
                     $"Request to {host} timed out. Your connection may be slow or the request is being blocked silently.", source);
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // The caller gave up (its budget elapsed) — expected, not an error worth a stack trace.
+                App.Logger.WriteLine(LOG_IDENT, $"Request to {host} cancelled by the caller.");
+                return new WeaoResult(Array.Empty<WeaoExploit>(),
+                    $"The request to {host} was cancelled before it finished.", source);
+            }
             catch (HttpRequestException ex)
             {
                 App.Logger.WriteException(LOG_IDENT + "::Http", ex);

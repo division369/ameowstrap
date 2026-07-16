@@ -57,15 +57,22 @@ namespace ExploitStrap.Utility
 
             // Keep any captures the user already has: move a non-empty folder aside, drop an empty
             // one. Then leave a read-only placeholder file so Roblox can't write captures here.
+            string backup = path + BackupSuffix;
+            bool movedToBackup = false;
+
             if (Directory.Exists(path))
             {
-                string backup = path + BackupSuffix;
                 if (Directory.EnumerateFileSystemEntries(path).Any())
                 {
                     if (!Directory.Exists(backup))
+                    {
                         Directory.Move(path, backup);
+                        movedToBackup = true;
+                    }
                     else
+                    {
                         Directory.Delete(path, recursive: true); // a backup already holds the originals
+                    }
                 }
                 else
                 {
@@ -73,8 +80,22 @@ namespace ExploitStrap.Utility
                 }
             }
 
-            File.WriteAllBytes(path, Array.Empty<byte>());
-            File.SetAttributes(path, FileAttributes.ReadOnly);
+            try
+            {
+                File.WriteAllBytes(path, Array.Empty<byte>());
+                File.SetAttributes(path, FileAttributes.ReadOnly);
+            }
+            catch
+            {
+                // Roblox may have recreated the folder in the gap, or the write was denied.
+                // Don't strand the user's captures in the backup folder — put them back.
+                if (movedToBackup && Directory.Exists(backup) && !Directory.Exists(path))
+                {
+                    try { Directory.Move(backup, path); } catch { }
+                }
+                throw;
+            }
+
             App.Logger.WriteLine(LOG_IDENT, $"Blocked Roblox captures at {path}");
         }
 

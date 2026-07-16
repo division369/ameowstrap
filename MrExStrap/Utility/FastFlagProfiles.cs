@@ -47,7 +47,12 @@ namespace ExploitStrap.Utility
         // Write the active profile's flags into the canonical file the launch overlay applies.
         // When the manager is off, or the active profile has no flag file, the canonical file
         // is emptied so nothing stale gets applied.
-        public static void MaterializeActiveToCanonical()
+        //
+        // Takes the profile the bootstrapper actually resolved for THIS launch rather than
+        // re-reading the global ActiveVersionProfileId, because a -versionprofile launch
+        // override picks a different profile without ever writing the global id — and that
+        // launch must get the override profile's flags, not the global one's.
+        public static void MaterializeActiveToCanonical(VersionProfile? activeProfile)
         {
             try
             {
@@ -59,7 +64,7 @@ namespace ExploitStrap.Utility
                     return;
                 }
 
-                string activeId = App.Settings.Prop.ActiveVersionProfileId;
+                string activeId = activeProfile?.Id ?? App.Settings.Prop.ActiveVersionProfileId;
                 string source = string.IsNullOrEmpty(activeId) ? "" : PathFor(activeId);
 
                 if (!string.IsNullOrEmpty(source) && File.Exists(source))

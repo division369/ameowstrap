@@ -69,6 +69,11 @@ namespace ExploitStrap.Utility
                 string body = await resp.Content.ReadAsStringAsync();
                 return Parse(body, resp.IsSuccessStatusCode);
             }
+            catch (TaskCanceledException)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Request timed out.");
+                return new LeakdResult { Success = false, Error = "The LeakD API took too long to respond (30s timeout). Large scripts can take a while — try again." };
+            }
             catch (Exception ex)
             {
                 App.Logger.WriteException(LOG_IDENT, ex);

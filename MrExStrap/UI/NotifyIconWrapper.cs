@@ -55,35 +55,46 @@ namespace ExploitStrap.UI
         #endregion
 
         #region Activity handlers
+        // Raised from the ActivityWatcher's log-reader thread, and it's async void, so
+        // it needs two guards: (1) a catch around everything, since an unhandled exception
+        // here tears the process down, and (2) ShowAlert must run on the tray's UI thread —
+        // the NotifyIcon belongs to it, and after the await we're on a thread-pool thread.
         public async void OnGameJoin(object? sender, EventArgs e)
         {
-            if (_activityWatcher is null)
-                return;
-
-            var data = _activityWatcher.Data;
-
-            // The server IP is already parsed out of the Roblox logs (no auth, no rate limit), so we
-            // can resolve the datacenter region straight away. Best-effort — may be unavailable.
-            string? region = data.MachineAddressValid
-                ? await RobloxDatacenters.ResolveRegionAsync(data.MachineAddress)
-                : null;
-
-            string title = data.ServerType switch
+            try
             {
-                ServerType.Public => Strings.ContextMenu_ServerInformation_Notification_Title_Public,
-                ServerType.Private => Strings.ContextMenu_ServerInformation_Notification_Title_Private,
-                ServerType.Reserved => Strings.ContextMenu_ServerInformation_Notification_Title_Reserved,
-                _ => App.ProjectName
-            };
+                if (_activityWatcher is null)
+                    return;
 
-            string regionText = string.IsNullOrEmpty(region) ? Strings.Common_NotAvailable : region;
+                var data = _activityWatcher.Data;
 
-            ShowAlert(
-                title,
-                $"Region: {regionText}\nClick for more information",
-                10,
-                (_, _) => _menuContainer.ShowServerInformationWindow()
-            );
+                // The server IP is already parsed out of the Roblox logs (no auth, no rate limit), so we
+                // can resolve the datacenter region straight away. Best-effort — may be unavailable.
+                string? region = data.MachineAddressValid
+                    ? await RobloxDatacenters.ResolveRegionAsync(data.MachineAddress)
+                    : null;
+
+                string title = data.ServerType switch
+                {
+                    ServerType.Public => Strings.ContextMenu_ServerInformation_Notification_Title_Public,
+                    ServerType.Private => Strings.ContextMenu_ServerInformation_Notification_Title_Private,
+                    ServerType.Reserved => Strings.ContextMenu_ServerInformation_Notification_Title_Reserved,
+                    _ => App.ProjectName
+                };
+
+                string regionText = string.IsNullOrEmpty(region) ? Strings.Common_NotAvailable : region;
+
+                _menuContainer.Dispatcher.Invoke(() => ShowAlert(
+                    title,
+                    $"Region: {regionText}\nClick for more information",
+                    10,
+                    (_, _) => _menuContainer.ShowServerInformationWindow()
+                ));
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("NotifyIconWrapper::OnGameJoin", ex);
+            }
         }
         #endregion
 

@@ -72,7 +72,8 @@ namespace ExploitStrap.UI.ViewModels.Settings
             set
             {
                 App.Settings.Prop.Theme = value;
-                ((MainWindow)Window.GetWindow(_page)!).ApplyTheme();
+                if (Window.GetWindow(_page) is MainWindow mw)
+                    mw.ApplyTheme();
             }
         }
 
@@ -420,32 +421,43 @@ namespace ExploitStrap.UI.ViewModels.Settings
             if (dialog.ShowDialog() != true)
                 return;
 
-            string themeDir = Path.Combine(Paths.CustomThemes, SelectedCustomTheme);
-
-            using var memStream = new MemoryStream();
-            using var zipStream = new ZipOutputStream(memStream);
-
-            foreach (var filePath in Directory.EnumerateFiles(themeDir, "*.*", SearchOption.AllDirectories))
+            try
             {
-                string relativePath = filePath[(themeDir.Length + 1)..];
+                string themeDir = Path.Combine(Paths.CustomThemes, SelectedCustomTheme);
 
-                var entry = new ZipEntry(relativePath);
-                entry.DateTime = DateTime.Now;
+                using (var memStream = new MemoryStream())
+                {
+                    using (var zipStream = new ZipOutputStream(memStream))
+                    {
+                        foreach (var filePath in Directory.EnumerateFiles(themeDir, "*.*", SearchOption.AllDirectories))
+                        {
+                            string relativePath = filePath[(themeDir.Length + 1)..];
 
-                zipStream.PutNextEntry(entry);
+                            var entry = new ZipEntry(relativePath);
+                            entry.DateTime = DateTime.Now;
 
-                using var fileStream = File.OpenRead(filePath);
-                fileStream.CopyTo(zipStream);
+                            zipStream.PutNextEntry(entry);
+
+                            using var fileStream = File.OpenRead(filePath);
+                            fileStream.CopyTo(zipStream);
+                        }
+
+                        zipStream.CloseEntry();
+                        zipStream.Finish();
+                    }
+
+                    // Buffer the whole archive in memory first, then write in one shot — a
+                    // failure part-way through never leaves a truncated .zip at the target.
+                    File.WriteAllBytes(dialog.FileName, memStream.ToArray());
+                }
+
+                Process.Start("explorer.exe", $"/select,\"{dialog.FileName}\"");
             }
-
-            zipStream.CloseEntry();
-            zipStream.Finish();
-            memStream.Position = 0;
-
-            using var outputStream = File.OpenWrite(dialog.FileName);
-            memStream.CopyTo(outputStream);
-
-            Process.Start("explorer.exe", $"/select,\"{dialog.FileName}\"");
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AppearanceViewModel::ExportCustomTheme", ex);
+                Frontend.ShowMessageBox($"Couldn't export the theme '{SelectedCustomTheme}': {ex.Message}", MessageBoxImage.Error);
+            }
         }
 
         private void PopulateCustomThemes()

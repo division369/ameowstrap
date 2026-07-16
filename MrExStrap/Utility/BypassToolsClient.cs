@@ -44,6 +44,11 @@ namespace ExploitStrap.Utility
                 string body = await resp.Content.ReadAsStringAsync();
                 return Parse(body, resp.IsSuccessStatusCode);
             }
+            catch (TaskCanceledException)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Request timed out.");
+                return new BypassResult { Error = "bypass.tools took too long to respond (30s timeout). Some link providers are slow to bypass — try again." };
+            }
             catch (Exception ex)
             {
                 App.Logger.WriteException(LOG_IDENT, ex);

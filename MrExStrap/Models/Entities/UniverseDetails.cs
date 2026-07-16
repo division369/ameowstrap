@@ -30,12 +30,12 @@ namespace ExploitStrap.Models.Entities
         {
             var gameDetailResponse = await Http.GetJson<ApiArrayResponse<GameDetailResponse>>($"https://games.roblox.com/v1/games?universeIds={ids}");
 
-            if (!gameDetailResponse.Data.Any())
+            if (gameDetailResponse is null || !gameDetailResponse.Data.Any())
                 return;
 
             var universeThumbnailResponse = await Http.GetJson<ApiArrayResponse<ThumbnailResponse>>($"https://thumbnails.roblox.com/v1/games/icons?universeIds={ids}&returnPolicy=PlaceHolder&size=128x128&format=Png&isCircular=false");
 
-            if (!universeThumbnailResponse.Data.Any())
+            if (universeThumbnailResponse is null || !universeThumbnailResponse.Data.Any())
                 throw new InvalidHTTPResponseException("Roblox API for Game Thumbnails returned invalid data");
 
             foreach (string strId in ids.Split(','))

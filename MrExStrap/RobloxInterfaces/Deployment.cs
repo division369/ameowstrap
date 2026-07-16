@@ -126,7 +126,7 @@ namespace ExploitStrap.RobloxInterfaces
             return location;
         }
 
-        public static async Task<ClientVersion> GetInfo(string? channel = null)
+        public static async Task<ClientVersion> GetInfo(string? channel = null, CancellationToken token = default)
         {
             const string LOG_IDENT = "Deployment::GetInfo";
 
@@ -153,14 +153,19 @@ namespace ExploitStrap.RobloxInterfaces
                 if (!isDefaultChannel)
                     path = $"/v2/client-version/{BinaryType}/channel/{channel}";
 
+                ClientVersion? fetched;
                 try
                 {
-                    clientVersion = await Http.GetJson<ClientVersion>("https://clientsettingscdn.roblox.com" + path);
+                    fetched = await Http.GetJson<ClientVersion>("https://clientsettingscdn.roblox.com" + path, token);
                 }
-                catch (HttpRequestException httpEx) 
+                catch (HttpRequestException httpEx)
                 when (!isDefaultChannel && BadChannelCodes.Contains(httpEx.StatusCode))
                 {
                     throw new InvalidChannelException(httpEx.StatusCode);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -169,7 +174,7 @@ namespace ExploitStrap.RobloxInterfaces
 
                     try
                     {
-                        clientVersion = await Http.GetJson<ClientVersion>("https://clientsettings.roblox.com" + path);
+                        fetched = await Http.GetJson<ClientVersion>("https://clientsettings.roblox.com" + path, token);
                     }
                     catch (HttpRequestException httpEx)
                     when (!isDefaultChannel && BadChannelCodes.Contains(httpEx.StatusCode))
@@ -177,6 +182,8 @@ namespace ExploitStrap.RobloxInterfaces
                         throw new InvalidChannelException(httpEx.StatusCode);
                     }
                 }
+
+                clientVersion = fetched ?? throw new InvalidHTTPResponseException("Deploy info response deserialized to null");
 
                 ClientVersionCache[cacheKey] = clientVersion;
             }

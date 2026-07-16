@@ -41,6 +41,11 @@ namespace ExploitStrap.Utility
                 string body = await resp.Content.ReadAsStringAsync();
                 return ParseObfuscate(body, resp.IsSuccessStatusCode);
             }
+            catch (TaskCanceledException)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Request timed out.");
+                return new LeakdClient.LeakdResult { Success = false, Error = "luaobfuscator.com took too long to respond (30s timeout). Large scripts can take a while — try again." };
+            }
             catch (Exception ex)
             {
                 App.Logger.WriteException(LOG_IDENT, ex);

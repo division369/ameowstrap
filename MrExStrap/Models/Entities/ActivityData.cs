@@ -116,7 +116,7 @@ namespace ExploitStrap.Models.Entities
             {
                 var ipInfo = await Http.GetJson<IPInfoResponse>($"https://ipinfo.io/{MachineAddress}/json");
 
-                if (string.IsNullOrEmpty(ipInfo.City))
+                if (ipInfo is null || string.IsNullOrEmpty(ipInfo.City))
                     throw new InvalidHTTPResponseException("Reported city was blank");
 
                 if (ipInfo.City == ipInfo.Region)

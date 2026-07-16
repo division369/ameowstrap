@@ -42,7 +42,7 @@ namespace ExploitStrap.Utility
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
-                var info = await RobloxDeploymentClient.GetCurrentLiveAsync();
+                var info = await RobloxDeploymentClient.GetCurrentLiveAsync(cts.Token);
                 if (info is null)
                     sb.AppendLine("  (network error)");
                 else

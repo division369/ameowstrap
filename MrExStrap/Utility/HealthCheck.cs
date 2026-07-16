@@ -72,7 +72,7 @@ namespace ExploitStrap.Utility
             }
 
             sb.AppendLine();
-            sb.AppendLine($"Summary: {ok} OK, {warn} warn, {fail} fail, {results.Count()} total.");
+            sb.AppendLine($"Summary: {ok} OK, {warn} warn, {fail} fail, {ok + warn + fail} total.");
             return sb.ToString();
         }
 

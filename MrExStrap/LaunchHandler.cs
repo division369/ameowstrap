@@ -284,7 +284,7 @@ namespace ExploitStrap
 
             try
             {
-                var release = Task.Run(App.GetLatestRelease).GetAwaiter().GetResult();
+                var release = Task.Run(() => App.GetLatestRelease()).GetAwaiter().GetResult();
                 if (release is null)
                     return false;
 

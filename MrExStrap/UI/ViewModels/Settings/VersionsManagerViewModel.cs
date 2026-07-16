@@ -121,6 +121,10 @@ namespace ExploitStrap.UI.ViewModels.Settings
             }
         }
 
+        // Bumped on every rebuild so a disk scan started for an older tile set
+        // can't write its stale results over a newer one. UI thread only.
+        private int _scanGeneration;
+
         private void RebuildTiles()
         {
             Tiles.Clear();
@@ -135,8 +139,62 @@ namespace ExploitStrap.UI.ViewModels.Settings
             }
 
             RefreshActiveSummary();
-            RefreshDiskUsage();
+            // Disk usage and junction resolution walk every install's file tree —
+            // far too slow for the UI thread (multi-GB pinned installs freeze the
+            // tab for seconds). Scan in the background and fill the tiles in after.
+            _ = ScanTilesAsync(Tiles.ToArray(), ++_scanGeneration);
             OnPropertyChanged(nameof(SinglePinConflictVisibility));
+        }
+
+        private async Task ScanTilesAsync(VersionProfileTile[] tiles, int generation)
+        {
+            try
+            {
+                var results = await Task.Run(() =>
+                {
+                    // Two profiles can pin the same version guid — walk each guid once.
+                    var sizeByGuid = new Dictionary<string, long>();
+                    var scans = new (long Bytes, bool IsInstallTarget)[tiles.Length];
+
+                    for (int i = 0; i < tiles.Length; i++)
+                    {
+                        var tile = tiles[i];
+                        long bytes = 0;
+                        if (!string.IsNullOrEmpty(tile.VersionGuid))
+                        {
+                            if (!sizeByGuid.TryGetValue(tile.VersionGuid, out bytes))
+                            {
+                                bytes = VersionsDiskUsage.GetUsageBytes(tile.VersionGuid);
+                                sizeByGuid[tile.VersionGuid] = bytes;
+                            }
+                        }
+
+                        scans[i] = (bytes, VersionProfileTile.ResolveIsInstallTarget(tile.VersionGuid, tile.Id));
+                    }
+
+                    return scans;
+                });
+
+                // Back on the UI thread (started from it). Drop stale scans.
+                if (generation != _scanGeneration)
+                    return;
+
+                long total = 0;
+                for (int i = 0; i < tiles.Length; i++)
+                {
+                    tiles[i].ApplyScan(results[i].Bytes, results[i].IsInstallTarget);
+                    total += results[i].Bytes;
+                }
+
+                int profileCount = tiles.Length;
+                DiskUsageText = $"Disk usage: {VersionsDiskUsage.FormatBytes(total)} across {profileCount} profile{(profileCount == 1 ? "" : "s")}";
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT + "::ScanTiles", ex);
+                if (generation == _scanGeneration)
+                    DiskUsageText = "Disk usage: (unavailable)";
+            }
         }
 
         private void RefreshActiveSummary()
@@ -151,24 +209,6 @@ namespace ExploitStrap.UI.ViewModels.Settings
             }
             ActiveName = active.Name;
             ActiveHash = string.IsNullOrEmpty(active.VersionGuid) ? "(current LIVE)" : active.VersionGuid;
-        }
-
-        private void RefreshDiskUsage()
-        {
-            try
-            {
-                var guids = App.Settings.Prop.VersionProfiles
-                    .Where(p => !string.IsNullOrEmpty(p.VersionGuid))
-                    .Select(p => p.VersionGuid);
-                long bytes = VersionsDiskUsage.GetTotalUsageBytes(guids);
-                int profileCount = App.Settings.Prop.VersionProfiles.Count;
-                DiskUsageText = $"Disk usage: {VersionsDiskUsage.FormatBytes(bytes)} across {profileCount} profile{(profileCount == 1 ? "" : "s")}";
-            }
-            catch (Exception ex)
-            {
-                App.Logger.WriteException(LOG_IDENT + "::RefreshDiskUsage", ex);
-                DiskUsageText = "Disk usage: (unavailable)";
-            }
         }
 
         private void Activate(string? id)
@@ -317,7 +357,15 @@ namespace ExploitStrap.UI.ViewModels.Settings
         public bool IsBuiltIn { get; }
         public bool CanDelete => !IsBuiltIn;
         public string? LogoUrl { get; }
-        public string DiskUsageText { get; }
+
+        // Filled in by the view model's background disk scan — walking the install
+        // tree is too slow for tile construction on the UI thread.
+        private string _diskUsageText = "";
+        public string DiskUsageText
+        {
+            get => _diskUsageText;
+            private set { _diskUsageText = value; OnPropertyChanged(nameof(DiskUsageText)); }
+        }
 
         // v420.23: surfaced on tiles for executor-tracked profiles. The badge tells
         // the user the version will auto-update from WEAO; the timestamp says when
@@ -332,7 +380,13 @@ namespace ExploitStrap.UI.ViewModels.Settings
         // junction at Versions\<this profile's VersionGuid>\ currently resolves to
         // this profile's per-profile dir.
         public bool CanSetAsInstallTarget => !string.IsNullOrEmpty(VersionGuid);
-        public bool IsInstallTarget { get; }
+
+        private bool _isInstallTarget;
+        public bool IsInstallTarget
+        {
+            get => _isInstallTarget;
+            private set { _isInstallTarget = value; OnPropertyChanged(nameof(IsInstallTarget)); }
+        }
 
         private bool _isActive;
         public bool IsActive
@@ -361,20 +415,25 @@ namespace ExploitStrap.UI.ViewModels.Settings
             LogoUrl = profile.ExecutorLogoUrl;
             _isActive = isActive;
 
-            long bytes = string.IsNullOrEmpty(profile.VersionGuid) ? 0 : VersionsDiskUsage.GetUsageBytes(profile.VersionGuid);
-            DiskUsageText = bytes > 0 ? VersionsDiskUsage.FormatBytes(bytes) : "";
-
             IsExecutorTracked = !string.IsNullOrWhiteSpace(profile.ExecutorRefreshKey);
             LastRefreshText = IsExecutorTracked
                 ? FormatLastRefresh(profile.LastExecutorRefreshUtc)
                 : "";
 
-            IsInstallTarget = ResolveIsInstallTarget(profile);
+            // DiskUsageText and IsInstallTarget arrive later via ApplyScan — both need
+            // filesystem walks that would freeze the UI thread if done here.
 
             // The built-in "Latest LIVE" profile has no executor logo to fetch, so instead of a bare
             // letter placeholder show the Roblox app icon.
             if (IsBuiltIn)
                 _logo = LoadRobloxIcon();
+        }
+
+        // Called on the UI thread with results from the view model's background disk scan.
+        public void ApplyScan(long diskUsageBytes, bool isInstallTarget)
+        {
+            DiskUsageText = diskUsageBytes > 0 ? VersionsDiskUsage.FormatBytes(diskUsageBytes) : "";
+            IsInstallTarget = isInstallTarget;
         }
 
         private static ImageSource? LoadRobloxIcon()
@@ -393,21 +452,22 @@ namespace ExploitStrap.UI.ViewModels.Settings
             }
         }
 
-        // True when Versions\<profile.VersionGuid>\ is a junction whose target's
-        // folder name is "profile-<profile.Id>". This is how the Versions Manager
-        // tile knows whether to render the "Install target" badge.
-        private static bool ResolveIsInstallTarget(VersionProfile profile)
+        // True when Versions\<versionGuid>\ is a junction whose target's folder
+        // name is "profile-<profileId>". This is how the Versions Manager tile
+        // knows whether to render the "Install target" badge. Does junction I/O,
+        // so it runs on the view model's background scan, not tile construction.
+        internal static bool ResolveIsInstallTarget(string versionGuid, string profileId)
         {
-            if (string.IsNullOrEmpty(profile.VersionGuid))
+            if (string.IsNullOrEmpty(versionGuid))
                 return false;
 
-            string junctionPath = Path.Combine(Paths.Versions, profile.VersionGuid);
+            string junctionPath = Path.Combine(Paths.Versions, versionGuid);
             string? target = VersionJunctionManager.GetJunctionTargetName(junctionPath);
             if (string.IsNullOrEmpty(target))
                 return false;
 
             string targetName = Path.GetFileName(target.TrimEnd('\\', '/'));
-            return string.Equals(targetName, "profile-" + profile.Id, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(targetName, "profile-" + profileId, StringComparison.OrdinalIgnoreCase);
         }
 
         private static string FormatLastRefresh(DateTime? lastUtc)

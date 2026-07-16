@@ -36,6 +36,8 @@ namespace ExploitStrap.Utility
                 IsAcquired = false;
             }
 
+            Mutex.Dispose();
+
             GC.SuppressFinalize(this);
         }
     }

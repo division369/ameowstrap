@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -65,35 +66,43 @@ namespace ExploitStrap.Utility
         }
 
         // ---- caches -------------------------------------------------------------------
+        // Refreshes can overlap (manual refresh racing a tab-open fetch on another
+        // continuation thread), so every cache is either published atomically as one
+        // immutable object or is a ConcurrentDictionary — plain fields + Dictionary
+        // here risk torn reads and dictionary corruption.
 
-        private static List<DevForumTopic>? _announcementsCache;
-        private static DateTime _announcementsFetchedAt;
+        private sealed class Cached<T>
+        {
+            public readonly T Value;
+            public readonly DateTime At;
+            public Cached(T value, DateTime at) { Value = value; At = at; }
+        }
 
-        private static List<int>? _releaseListCache;
-        private static DateTime _releaseListFetchedAt;
+        private static volatile Cached<List<DevForumTopic>>? _announcementsCache;
+        private static volatile Cached<List<int>>? _releaseListCache;
 
-        private static readonly Dictionary<int, (ReleaseNotes Notes, DateTime At)> _releaseNotesCache = new();
+        private static readonly ConcurrentDictionary<int, (ReleaseNotes Notes, DateTime At)> _releaseNotesCache = new();
 
         // When the currently-served announcements were actually fetched (for the "cached N min ago" footer).
-        public static DateTime AnnouncementsFetchedAt => _announcementsFetchedAt;
+        public static DateTime AnnouncementsFetchedAt => _announcementsCache?.At ?? default;
 
         // ---- announcements ------------------------------------------------------------
 
         public static async Task<List<DevForumTopic>> GetAnnouncementsAsync(bool forceRefresh = false)
         {
-            if (!forceRefresh && _announcementsCache != null && DateTime.Now - _announcementsFetchedAt < CacheTtl)
-                return _announcementsCache;
+            var cached = _announcementsCache;
+            if (!forceRefresh && cached != null && DateTime.Now - cached.At < CacheTtl)
+                return cached.Value;
 
             var list = await FetchCategoryTopicsAsync(AnnouncementsCategoryId, "announcements");
             if (list.Count > 0)
             {
-                _announcementsCache = list;
-                _announcementsFetchedAt = DateTime.Now;
+                _announcementsCache = new Cached<List<DevForumTopic>>(list, DateTime.Now);
                 return list;
             }
 
             // Fetch failed (offline / blocked). Serve stale cache if we have it, otherwise the empty list.
-            return _announcementsCache ?? list;
+            return _announcementsCache?.Value ?? list;
         }
 
         private static async Task<List<DevForumTopic>> FetchCategoryTopicsAsync(int categoryId, string slug)
@@ -102,7 +111,9 @@ namespace ExploitStrap.Utility
             try
             {
                 string url = $"https://devforum.roblox.com/c/updates/{slug}/{categoryId}.json";
-                string json = await GetStringAsync(url);
+                string? json = await GetStringAsync(url);
+                if (json is null)
+                    return result;
 
                 using var doc = JsonDocument.Parse(json);
                 if (!doc.RootElement.TryGetProperty("topic_list", out var topicList) ||
@@ -145,14 +156,17 @@ namespace ExploitStrap.Utility
 
         public static async Task<List<int>> GetReleaseNumbersAsync(bool forceRefresh = false)
         {
-            if (!forceRefresh && _releaseListCache != null && DateTime.Now - _releaseListFetchedAt < CacheTtl)
-                return _releaseListCache;
+            var cachedList = _releaseListCache;
+            if (!forceRefresh && cachedList != null && DateTime.Now - cachedList.At < CacheTtl)
+                return cachedList.Value;
 
             var numbers = new List<int>();
             try
             {
                 string url = $"https://devforum.roblox.com/c/updates/release-notes/{ReleaseNotesCategoryId}.json";
-                string json = await GetStringAsync(url);
+                string? json = await GetStringAsync(url);
+                if (json is null)
+                    return _releaseListCache?.Value ?? numbers;
 
                 using var doc = JsonDocument.Parse(json);
                 if (doc.RootElement.TryGetProperty("topic_list", out var tl) &&
@@ -176,11 +190,10 @@ namespace ExploitStrap.Utility
             numbers.Sort((a, b) => b.CompareTo(a)); // newest first
             if (numbers.Count > 0)
             {
-                _releaseListCache = numbers;
-                _releaseListFetchedAt = DateTime.Now;
+                _releaseListCache = new Cached<List<int>>(numbers, DateTime.Now);
                 return numbers;
             }
-            return _releaseListCache ?? numbers;
+            return _releaseListCache?.Value ?? numbers;
         }
 
         // ---- per-release notes --------------------------------------------------------
@@ -195,7 +208,9 @@ namespace ExploitStrap.Utility
             try
             {
                 string url = $"https://create.roblox.com/docs/en-us/release-notes/release-notes-{release}";
-                string html = await GetStringAsync(url);
+                string? html = await GetStringAsync(url);
+                if (html is null)
+                    return notes;
 
                 string? nextData = ExtractNextData(html);
                 if (nextData != null)
@@ -261,14 +276,21 @@ namespace ExploitStrap.Utility
 
         // ---- helpers ------------------------------------------------------------------
 
-        private static async Task<string> GetStringAsync(string url)
+        // Returns null on a non-success status. A 403 Cloudflare challenge or a 404 for a
+        // release with no notes page is routine for these public endpoints — that's a
+        // one-line log and an empty result, not an exception with a stack trace.
+        private static async Task<string?> GetStringAsync(string url)
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
             req.Headers.TryAddWithoutValidation("User-Agent", BrowserUa);
             req.Headers.TryAddWithoutValidation("Accept", "application/json, text/html;q=0.9, */*;q=0.8");
 
             using var resp = await App.HttpClient.SendAsync(req);
-            resp.EnsureSuccessStatusCode();
+            if (!resp.IsSuccessStatusCode)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"GET {url} -> {(int)resp.StatusCode} {resp.StatusCode}");
+                return null;
+            }
             return await resp.Content.ReadAsStringAsync();
         }
 

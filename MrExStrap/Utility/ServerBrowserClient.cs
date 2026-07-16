@@ -72,9 +72,15 @@ namespace ExploitStrap.Utility
             try
             {
                 // gameJoinAttemptId just has to be a unique GUID per attempt; Roblox echoes it back.
-                string body =
-                    $"{{\"placeId\":{placeId},\"isTeleport\":false,\"gameId\":\"{jobId}\"," +
-                    $"\"gameJoinAttemptId\":\"{Guid.NewGuid()}\"}}";
+                // Serialized rather than hand-built so a stray quote/backslash in jobId can't
+                // break out of the JSON string.
+                string body = JsonSerializer.Serialize(new
+                {
+                    placeId,
+                    isTeleport = false,
+                    gameId = jobId,
+                    gameJoinAttemptId = Guid.NewGuid(),
+                });
 
                 string? raw = await PostGameJoinAsync(cookie, body, null);
                 if (string.IsNullOrEmpty(raw))

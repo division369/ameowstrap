@@ -65,6 +65,12 @@ namespace ExploitStrap.Utility
                     return false;
                 }
 
+                // Read both pipes concurrently BEFORE waiting. Reading them serially after
+                // WaitForExit is the classic pipe-buffer deadlock shape (safe here only
+                // because mklink's output is tiny, but no reason to keep the footgun).
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+
                 if (!proc.WaitForExit(5000))
                 {
                     try { proc.Kill(true); } catch { }
@@ -72,8 +78,8 @@ namespace ExploitStrap.Utility
                     return false;
                 }
 
-                string stdout = proc.StandardOutput.ReadToEnd().Trim();
-                string stderr = proc.StandardError.ReadToEnd().Trim();
+                string stdout = stdoutTask.GetAwaiter().GetResult().Trim();
+                string stderr = stderrTask.GetAwaiter().GetResult().Trim();
 
                 if (proc.ExitCode != 0 || !Directory.Exists(junctionPath) || !IsJunction(junctionPath))
                 {

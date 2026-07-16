@@ -17,14 +17,6 @@ namespace ExploitStrap.Utility
             return GetDirectorySize(dir);
         }
 
-        public static long GetTotalUsageBytes(IEnumerable<string> versionGuids)
-        {
-            long total = 0;
-            foreach (var guid in versionGuids)
-                total += GetUsageBytes(guid);
-            return total;
-        }
-
         private static long GetDirectorySize(string dir)
         {
             if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))

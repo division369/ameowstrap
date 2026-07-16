@@ -252,13 +252,13 @@ namespace ExploitStrap
 
         public static bool CanSendLogs() => false;
 
-        public static async Task<GithubRelease?> GetLatestRelease()
+        public static async Task<GithubRelease?> GetLatestRelease(CancellationToken token = default)
         {
             const string LOG_IDENT = "App::GetLatestRelease";
 
             try
             {
-                var releaseInfo = await Http.GetJson<GithubRelease>($"https://api.github.com/repos/{ProjectRepository}/releases/latest");
+                var releaseInfo = await Http.GetJson<GithubRelease>($"https://api.github.com/repos/{ProjectRepository}/releases/latest", token);
 
                 if (releaseInfo is null || releaseInfo.Assets is null)
                 {
@@ -267,6 +267,12 @@ namespace ExploitStrap
                 }
 
                 return releaseInfo;
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // The caller set a budget and gave up — let it handle the cancel,
+                // otherwise its timeout logging can never fire.
+                throw;
             }
             catch (Exception ex)
             {

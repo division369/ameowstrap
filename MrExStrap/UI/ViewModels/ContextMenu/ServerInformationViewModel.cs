@@ -33,23 +33,37 @@ namespace ExploitStrap.UI.ViewModels.ContextMenu
             }
         }
 
+        // Both queries are async void (fired from the ctor), so an exception escaping
+        // them is an unhandled process-killer — catch everything and show "N/A".
+
         public async void QueryServerLocation()
         {
-            string? location = await _activityWatcher.Data.QueryServerLocation();
+            string? location = null;
+            try
+            {
+                location = await _activityWatcher.Data.QueryServerLocation();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("ServerInformationViewModel::QueryServerLocation", ex);
+            }
 
-            if (String.IsNullOrEmpty(location))
-                ServerLocation = Strings.Common_NotAvailable;
-            else
-                ServerLocation = location;
-
+            ServerLocation = String.IsNullOrEmpty(location) ? Strings.Common_NotAvailable : location;
             OnPropertyChanged(nameof(ServerLocation));
         }
 
         public async void QueryServerRegion()
         {
-            string? region = _activityWatcher.Data.MachineAddressValid
-                ? await RobloxDatacenters.ResolveRegionAsync(_activityWatcher.Data.MachineAddress)
-                : null;
+            string? region = null;
+            try
+            {
+                if (_activityWatcher.Data.MachineAddressValid)
+                    region = await RobloxDatacenters.ResolveRegionAsync(_activityWatcher.Data.MachineAddress);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("ServerInformationViewModel::QueryServerRegion", ex);
+            }
 
             ServerRegion = String.IsNullOrEmpty(region) ? Strings.Common_NotAvailable : region;
             OnPropertyChanged(nameof(ServerRegion));

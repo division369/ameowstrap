@@ -13,21 +13,33 @@ namespace ExploitStrap.Utility
     {
         private const string LOG_IDENT = "KnownFlags";
 
-        private static readonly HashSet<string> _names = new(StringComparer.OrdinalIgnoreCase);
+        // Built locally in LoadAsync and published exactly once, never mutated after —
+        // so Search/IsKnown can read it from any thread without locking. Concurrent
+        // loads (editor page + browse dialog racing) are serialized by _loadGate.
+        private static volatile HashSet<string>? _names;
+        private static readonly SemaphoreSlim _loadGate = new(1, 1);
 
-        public static bool Loaded { get; private set; }
+        public static bool Loaded => _names is not null;
 
-        public static IReadOnlyCollection<string> Names => _names;
+        public static IReadOnlyCollection<string> Names => _names ?? (IReadOnlyCollection<string>)Array.Empty<string>();
 
-        public static bool IsKnown(string? name) => !string.IsNullOrEmpty(name) && _names.Contains(name);
+        public static bool IsKnown(string? name)
+        {
+            var names = _names;
+            return names is not null && !string.IsNullOrEmpty(name) && names.Contains(name);
+        }
 
         public static async Task LoadAsync()
         {
-            if (Loaded)
+            if (_names is not null)
                 return;
 
+            await _loadGate.WaitAsync();
             try
             {
+                if (_names is not null)
+                    return;
+
                 using var resp = await App.HttpClient.GetAsync(
                     "https://clientsettings.roblox.com/v2/settings/application/PCDesktopClient");
 
@@ -36,27 +48,38 @@ namespace ExploitStrap.Utility
 
                 string json = await resp.Content.ReadAsStringAsync();
 
+                var loaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 using var doc = JsonDocument.Parse(json);
                 if (doc.RootElement.TryGetProperty("applicationSettings", out var settings)
                     && settings.ValueKind == JsonValueKind.Object)
                 {
                     foreach (var prop in settings.EnumerateObject())
-                        _names.Add(prop.Name);
+                        loaded.Add(prop.Name);
                 }
 
-                Loaded = _names.Count > 0;
-                App.Logger.WriteLine(LOG_IDENT, $"Loaded {_names.Count} known flags");
+                if (loaded.Count > 0)
+                    _names = loaded;
+
+                App.Logger.WriteLine(LOG_IDENT, $"Loaded {loaded.Count} known flags");
             }
             catch (Exception ex)
             {
                 App.Logger.WriteException(LOG_IDENT + "::Load", ex);
+            }
+            finally
+            {
+                _loadGate.Release();
             }
         }
 
         // Filtered, sorted, capped list for the browse dialog.
         public static List<string> Search(string query, int limit = 500)
         {
-            IEnumerable<string> source = _names;
+            var names = _names;
+            if (names is null)
+                return new List<string>();
+
+            IEnumerable<string> source = names;
 
             if (!string.IsNullOrWhiteSpace(query))
                 source = source.Where(n => n.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase));

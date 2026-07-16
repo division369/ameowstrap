@@ -45,6 +45,10 @@ namespace ExploitStrap
         private readonly FastZipEvents _fastZipEvents = new();
         private readonly CancellationTokenSource _cancelTokenSource = new();
 
+        // Keeps the update-handoff mutex alive until this process exits. See the
+        // acquisition site in CheckForUpdates for the full protocol.
+        private static InterProcessLock? _upgradeHandoffLock;
+
         private IAppData AppData = default!;
         private LaunchMode _launchMode;
 
@@ -670,7 +674,9 @@ namespace ExploitStrap
                 // Per-profile fast flags: materialise the active Versions Manager profile's
                 // flag set into the canonical ClientAppSettings.json that ApplyModifications
                 // copies into the install. Keeps the overlay-copy path itself unchanged.
-                Utility.FastFlagProfiles.MaterializeActiveToCanonical();
+                // Pass the profile resolved for THIS launch so a -versionprofile override
+                // gets its own flags, not the global active profile's.
+                Utility.FastFlagProfiles.MaterializeActiveToCanonical(activeProfileForCheck);
 
                 // we require deployment details for applying modifications for a worst case scenario,
                 // where we'd need to restore files from a package that isn't present on disk and needs to be redownloaded
@@ -1514,8 +1520,12 @@ namespace ExploitStrap
 
                 App.Settings.Save();
 
-                new InterProcessLock("AutoUpdater");
-                
+                // Handoff lock: the new exe's Installer.HandleUpgrade waits on "AutoUpdater"
+                // (5s) before copying itself over the installed exe. Held until this process
+                // exits (the OS abandons it then, which is the waiter's go signal). Rooted in
+                // a static so the GC can't close the handle early. Deliberately never disposed.
+                _upgradeHandoffLock = new InterProcessLock("AutoUpdater");
+
                 Process.Start(startInfo);
 
                 return true;
