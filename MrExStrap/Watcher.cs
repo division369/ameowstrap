@@ -185,7 +185,11 @@ namespace ExploitStrap
             bool everInGame = (ActivityWatcher?.InGame ?? false) || (ActivityWatcher?.History.Count > 0);
             bool probableCrash = ActivityWatcher is not null
                 && !everInGame
-                && sessionLength < TimeSpan.FromSeconds(ProbableCrashWindowSeconds);
+                && sessionLength < TimeSpan.FromSeconds(ProbableCrashWindowSeconds)
+                // Multi Instance spawns a throwaway Roblox starter that exits in ~1s while the real
+                // client runs under a different PID. If any RobloxPlayerBeta is still alive, this
+                // wasn't a crash — don't fire the dialog on every multi-instance launch.
+                && !Utilities.GetProcessesSafe().Any(p => p.ProcessName == "RobloxPlayerBeta");
 
             if (probableCrash)
             {
