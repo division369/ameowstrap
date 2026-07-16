@@ -42,6 +42,13 @@ namespace ExploitStrap.UI
                     + "game, but it's the Roblox client itself that failed to run.");
             }
 
+            // Read the Roblox client logs and, when we recognise the cause (a blocked overlay,
+            // firewall/VPN, graphics driver, out of memory), name it plainly so the user knows
+            // it wasn't ExploitStrap and what to actually fix.
+            string? diagnosis = ExploitStrap.Utility.CrashAnalyzer.Analyze();
+            if (!string.IsNullOrEmpty(diagnosis))
+                info.Append("\n\n" + diagnosis);
+
             // If they're on an executor profile, that's by far the most likely cause: injected /
             // external tools crash the Roblox client constantly. Point them at the clean profile so
             // they can tell the difference between an executor problem and a real Roblox problem.

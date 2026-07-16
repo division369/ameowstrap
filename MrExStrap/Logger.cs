@@ -4,7 +4,12 @@ namespace ExploitStrap
 
     public class Logger
     {
-        private readonly SemaphoreSlim _semaphore = new(1, 1);
+        // One lock guards both the on-disk write and the in-memory History, so log lines are
+        // written in order, History is never corrupted by a concurrent Add, and a snapshot
+        // (AsDocument) never trips over a mid-write. Writes are synchronous and flushed per
+        // line: log volume is low (a launch is a few dozen lines) and a complete, current
+        // on-disk log is what actually matters when diagnosing a crash.
+        private readonly object _sync = new();
         private FileStream? _filestream;
 
         public readonly List<string> History = new();
@@ -12,7 +17,10 @@ namespace ExploitStrap
         public bool NoWriteMode = false;
         public string? FileLocation;
 
-        public string AsDocument => String.Join('\n', History);
+        public string AsDocument
+        {
+            get { lock (_sync) return String.Join('\n', History); }
+        }
 
         public void Initialize(bool useTempDir = false)
         {
@@ -67,10 +75,17 @@ namespace ExploitStrap
             }
             
 
-            Initialized = true;
+            // Flip Initialized and flush the buffered History under the same lock. If this were
+            // set outside the lock, a WriteLine racing in this window would write its line
+            // individually AND have it re-written in the bulk flush below — a duplicated line.
+            lock (_sync)
+            {
+                Initialized = true;
 
-            if (History.Count > 0)
-                WriteToLog(string.Join("\r\n", History));
+                // Flush anything logged before the file existed (buffered in History) in one block.
+                if (History.Count > 0)
+                    WriteToLogLocked(string.Join("\r\n", History));
+            }
 
             WriteLine(LOG_IDENT, "Finished initializing!");
 
@@ -109,9 +124,14 @@ namespace ExploitStrap
             string outlog = outcon.Replace(Paths.UserProfile, "%UserProfile%", StringComparison.InvariantCultureIgnoreCase);
 
             Debug.WriteLine(outcon);
-            WriteToLog(outlog);
 
-            History.Add(outlog);
+            // Add to History and write to disk atomically so the two never interleave and the
+            // on-disk order matches History exactly.
+            lock (_sync)
+            {
+                History.Add(outlog);
+                WriteToLogLocked(outlog);
+            }
         }
 
         public void WriteLine(string identifier, string message) => WriteLine($"[{identifier}] {message}");
@@ -127,21 +147,24 @@ namespace ExploitStrap
             Thread.CurrentThread.CurrentUICulture = Locale.CurrentCulture;
         }
 
-        private async void WriteToLog(string message)
+        // Caller must hold _sync. Writes the line and flushes it straight to the OS so the
+        // on-disk log is complete and current even if the process dies right after — the whole
+        // point of a crash log. A failed write is swallowed (logged to the debugger only): the
+        // logger must never take the app down, and it can't recurse into itself to report.
+        private void WriteToLogLocked(string message)
         {
-            if (!Initialized)
+            if (!Initialized || _filestream is null)
                 return;
 
             try
             {
-                await _semaphore.WaitAsync();
-                await _filestream!.WriteAsync(Encoding.UTF8.GetBytes($"{message}\r\n"));
-
-                _ = _filestream.FlushAsync();
+                byte[] bytes = Encoding.UTF8.GetBytes($"{message}\r\n");
+                _filestream.Write(bytes, 0, bytes.Length);
+                _filestream.Flush();
             }
-            finally
+            catch (Exception ex)
             {
-                _semaphore.Release();
+                Debug.WriteLine($"[Logger] Failed to write to log: {ex.Message}");
             }
         }
     }
