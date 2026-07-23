@@ -121,5 +121,95 @@
                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding AppIconLocation}" />
 
         <ui:Button Margin="0,20,0,0" Icon="ArrowReset24" Content="Reset theme to default" Command="{Binding ResetThemeCommand}" />
+
+        <!-- ===== Bootstrapper =====
+             The launch dialog, which is a separate surface from the app theme above.
+             These bindings existed in AppearanceViewModel the whole time but lost their
+             UI when this page was rebuilt for the glass overhaul, so the styles, icons
+             and custom themes were all unreachable. -->
+        <TextBlock Text="Bootstrapper" FontSize="20" FontWeight="Medium" Margin="0,28,0,0" />
+        <TextBlock Text="The dialog you see while Roblox downloads and starts. Nothing here affects the app theme above." FontSize="14"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+
+        <controls:OptionControl Header="Style" Description="Which launch dialog to show. Pick Custom Dialog to use one of your own themes below.">
+            <StackPanel Orientation="Horizontal">
+                <ComboBox Width="200" Padding="10,5,10,5" ItemsSource="{Binding Dialogs, Mode=OneTime}" SelectedItem="{Binding Dialog, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=., Converter={StaticResource EnumNameConverter}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ui:Button Margin="8,0,0,0" Icon="Play24" Content="Preview" Command="{Binding PreviewBootstrapperCommand}" />
+            </StackPanel>
+        </controls:OptionControl>
+
+        <controls:OptionControl Header="Icon" Description="The icon shown on the launch dialog.">
+            <ComboBox Width="200" Padding="10,5,10,5" ItemsSource="{Binding Icons, Mode=OneWay}" SelectedValuePath="IconType" SelectedValue="{Binding Icon, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image Height="16" Source="{Binding ImageSource, Mode=OneWay}" RenderOptions.BitmapScalingMode="HighQuality" />
+                            <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding Path=IconType, Converter={StaticResource EnumNameConverter}}" />
+                        </Grid>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </controls:OptionControl>
+
+        <controls:OptionControl Header="Title" Description="Text shown on the launch dialog.">
+            <ui:TextBox Width="200" Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:OptionControl>
+
+        <controls:OptionControl Header="Custom icon" Description="Use your own .ico on the launch dialog. Picking one switches the Icon setting above to Custom.">
+            <ui:Button Icon="FolderOpen24" Content="Browse" Command="{Binding BrowseCustomIconLocationCommand}" />
+        </controls:OptionControl>
+        <TextBlock Margin="6,4,0,0" FontSize="12" TextWrapping="Wrap" FontFamily="Consolas"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding CustomIconLocation}" />
+
+        <!-- Opens itself when the Custom Dialog style is selected, since that's the only
+             time these matter. Kept as an expander so it isn't noise the rest of the time. -->
+        <ui:CardExpander Margin="0,12,0,0" IsExpanded="{Binding CustomThemesExpanded, Mode=OneWay}">
+            <ui:CardExpander.Header>
+                <StackPanel>
+                    <TextBlock FontSize="14" Text="Custom themes" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               Text="Build your own launch dialog. Only used when the Style above is set to Custom Dialog." />
+                </StackPanel>
+            </ui:CardExpander.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ListBox Grid.Column="0" Height="220" Margin="0,0,8,0"
+                         ItemsSource="{Binding CustomThemes, Mode=OneWay}"
+                         SelectedItem="{Binding SelectedCustomTheme, Mode=TwoWay}" />
+                <StackPanel Grid.Column="1">
+                    <ui:Button Icon="Add24" Content="Add" HorizontalAlignment="Stretch" Command="{Binding AddCustomThemeCommand}" />
+                    <ui:Button Margin="0,6,0,0" Icon="PaintBrush24" Content="Edit" HorizontalAlignment="Stretch"
+                               Command="{Binding EditCustomThemeCommand}" IsEnabled="{Binding IsCustomThemeSelected}" />
+                    <ui:Button Margin="0,6,0,0" Icon="ArrowExportRtl24" Content="Export" HorizontalAlignment="Stretch"
+                               Command="{Binding ExportCustomThemeCommand}" IsEnabled="{Binding IsCustomThemeSelected}" />
+                    <ui:Button Margin="0,6,0,0" Icon="Delete24" Content="Delete" HorizontalAlignment="Stretch"
+                               Command="{Binding DeleteCustomThemeCommand}" IsEnabled="{Binding IsCustomThemeSelected}" />
+                    <TextBlock Margin="0,12,0,4" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="Rename to" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0" IsEnabled="{Binding IsCustomThemeSelected}"
+                                    Text="{Binding SelectedCustomThemeName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Content="Rename"
+                                   Command="{Binding RenameCustomThemeCommand}" IsEnabled="{Binding IsCustomThemeSelected}" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </ui:CardExpander>
     </StackPanel>
 </ui:UiPage>

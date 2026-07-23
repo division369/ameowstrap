@@ -13,15 +13,17 @@ namespace ExploitStrap.Utility
     //   environment.txt        — OS, runtime, locale, elevation, build commit
     //   settings.json          — full Settings dump
     //   state.json             — full State dump
-    //   fastflags.json         — FastFlags dump (if file exists)
+    //   fastflags.json         — the ACTIVE profile's FastFlags (kept flat for older readers)
+    //   fastflags/<id>.json    — EVERY profile's FastFlags, plus _index.txt mapping id -> name
     //   adapters.txt           — physical network adapters as ExploitStrap sees them
     //   processes.txt          — running Roblox PIDs + uptime + memory
     //   health.txt             — HealthCheck.RunAllAsync output
-    //   update_probe.txt       — fresh HTTP probe of GitHub /releases/latest with status / headers
+    //   update_probe.txt       — fresh HTTP probe of the update server's /releases/latest with status / headers
     //   logs/<filename>.log    — every file in Paths.Logs (the live session is taken from the
     //                            logger's in-memory History, since its on-disk copy is still buffered)
-    //   roblox-logs/<file>.log — newest Roblox client logs (where a Roblox-side crash, as opposed
-    //                            to a ExploitStrap fault, is actually diagnosable)
+    //   roblox-logs/<file>.log — Roblox client logs covering the same time window as logs/ above,
+    //                            which is where a Roblox-side crash (as opposed to a ExploitStrap
+    //                            fault) is actually diagnosable
     public static class DiagnosticBundle
     {
         private const string LOG_IDENT = "DiagnosticBundle";
@@ -49,7 +51,7 @@ namespace ExploitStrap.Utility
             WriteEntry(zip, "environment.txt", await BuildEnvironmentAsync());
             WriteEntry(zip, "settings.json", SafeReadFile(App.Settings.FileLocation));
             WriteEntry(zip, "state.json", SafeReadFile(App.State.FileLocation));
-            WriteEntry(zip, "fastflags.json", SafeReadFile(App.FastFlags.FileLocation));
+            AddFastFlagProfiles(zip);
             WriteEntry(zip, "adapters.txt", BuildAdapterReport());
             WriteEntry(zip, "processes.txt", BuildProcessReport());
 
@@ -77,19 +79,30 @@ namespace ExploitStrap.Utility
             return zipPath;
         }
 
-        private static void WriteEntry(ZipOutputStream zip, string entryName, string contents)
+        // Every entry goes through here, so this is the one place the username scrub has to
+        // happen for the whole zip to be clean.
+        private static void WriteEntry(ZipOutputStream zip, string entryName, string contents, DateTime? modified = null)
         {
             try
             {
-                var entry = new ZipEntry(entryName) { DateTime = DateTime.UtcNow };
+                var entry = new ZipEntry(entryName) { DateTime = modified ?? DateTime.UtcNow };
                 zip.PutNextEntry(entry);
-                byte[] bytes = Encoding.UTF8.GetBytes(contents ?? "");
+                byte[] bytes = Encoding.UTF8.GetBytes(LogScrubber.ScrubUserName(contents));
                 zip.Write(bytes, 0, bytes.Length);
             }
             catch (Exception ex)
             {
                 App.Logger.WriteException(LOG_IDENT + "::WriteEntry::" + entryName, ex);
             }
+        }
+
+        // Reads a file that another process may still hold open — our own live log, or a Roblox
+        // client log for a session that's still running.
+        private static string ReadShared(string path)
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(fs);
+            return reader.ReadToEnd();
         }
 
         private static string SafeReadFile(string? path)
@@ -225,7 +238,7 @@ namespace ExploitStrap.Utility
         private static async Task<string> BuildUpdateProbeAsync()
         {
             var sb = new StringBuilder();
-            string endpoint = $"https://api.github.com/repos/{App.ProjectRepository}/releases/latest";
+            string endpoint = $"{App.ProjectApiBase}/repos/{App.ProjectRepository}/releases/latest";
             sb.AppendLine($"Endpoint        : {endpoint}");
 
             var stopwatch = Stopwatch.StartNew();
@@ -284,10 +297,9 @@ namespace ExploitStrap.Utility
 
                 try
                 {
-                    var entry = new ZipEntry("logs/" + Path.GetFileName(file)) { DateTime = File.GetLastWriteTimeUtc(file) };
-                    zip.PutNextEntry(entry);
-                    using var fs = File.OpenRead(file);
-                    fs.CopyTo(zip);
+                    // Read as text rather than stream-copying: the entry has to pass through
+                    // WriteEntry for the username scrub to apply.
+                    WriteEntry(zip, "logs/" + Path.GetFileName(file), ReadShared(file), File.GetLastWriteTimeUtc(file));
                 }
                 catch (Exception ex)
                 {
@@ -322,9 +334,18 @@ namespace ExploitStrap.Utility
 
         // Roblox writes its own client logs to %LocalAppData%\Roblox\logs, one per launch. That's
         // where a Roblox-side crash actually shows up — our own logs only see that the process
-        // died. Grab the newest few (they pile up over time) under roblox-logs/ in the zip.
-        // Best-effort: a missing folder or a file Roblox still holds open never breaks the export.
-        private static void AddRobloxLogs(ZipOutputStream zip, int max = 5)
+        // died. Best-effort: a missing folder or a file Roblox still holds open never breaks
+        // the export.
+        //
+        // The window has to match logs/ or the bundle is unreadable. Until 2026-07-19 this took
+        // a flat newest-5, and skully's crash report landed with our logs going back to the
+        // previous day while all five Roblox logs were from after the user believed they'd fixed
+        // it — so the sessions that actually crashed had no client-side evidence at all. Anchor
+        // on the oldest ExploitStrap log instead, keeping newest-5 as a floor and a hard cap so a
+        // log dir that's never been cleaned can't bloat the zip.
+        private const int RobloxLogFloor = 5;
+
+        private static void AddRobloxLogs(ZipOutputStream zip, int max = 24)
         {
             string logDir;
             try { logDir = Path.Combine(Paths.LocalAppData, "Roblox", "logs"); }
@@ -333,31 +354,103 @@ namespace ExploitStrap.Utility
             if (!Directory.Exists(logDir))
                 return;
 
+            DateTime cutoff = OldestAppLogUtc();
+
             FileInfo[] files;
             try
             {
                 files = new DirectoryInfo(logDir).GetFiles("*.log")
                     .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .Where((f, i) => i < RobloxLogFloor || f.LastWriteTimeUtc >= cutoff)
                     .Take(max)
                     .ToArray();
             }
             catch (Exception ex) { App.Logger.WriteException(LOG_IDENT + "::EnumRobloxLogs", ex); return; }
 
+            App.Logger.WriteLine(LOG_IDENT, $"Including {files.Length} Roblox client log(s) back to {cutoff:u}");
+
             foreach (var file in files)
             {
                 try
                 {
-                    var entry = new ZipEntry("roblox-logs/" + file.Name) { DateTime = file.LastWriteTimeUtc };
-                    zip.PutNextEntry(entry);
-                    // Roblox keeps the current log open while running, so share read+write to copy it.
-                    using var fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    fs.CopyTo(zip);
+                    // Roblox logs are full of "C:\Users\<name>\..." paths, so these go through
+                    // WriteEntry (and its scrub) like everything else.
+                    WriteEntry(zip, "roblox-logs/" + file.Name, ReadShared(file.FullName), file.LastWriteTimeUtc);
                 }
                 catch (Exception ex)
                 {
                     App.Logger.WriteException(LOG_IDENT + "::AddRobloxLog::" + file.Name, ex);
                 }
             }
+        }
+
+        // Timestamp of the oldest ExploitStrap log we're shipping, used to size the Roblox-log
+        // window to match. Falls back to two days on any failure — wide enough to cover a typical
+        // report, narrow enough not to sweep in months of stale client logs.
+        private static DateTime OldestAppLogUtc()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(Paths.Logs) || !Directory.Exists(Paths.Logs))
+                    return DateTime.UtcNow.AddDays(-2);
+
+                var files = new DirectoryInfo(Paths.Logs).GetFiles("*.log");
+                return files.Length == 0
+                    ? DateTime.UtcNow.AddDays(-2)
+                    : files.Min(f => f.LastWriteTimeUtc);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT + "::OldestAppLogUtc", ex);
+                return DateTime.UtcNow.AddDays(-2);
+            }
+        }
+
+        // FastFlags live per Versions Manager profile at Paths.FastFlagProfiles\<profileId>.json.
+        // Exporting only the active profile's set (the behaviour until 2026-07-19) silently loses
+        // the flags that were live during a crash whenever the user has switched profiles since —
+        // exactly what happened in skully's report, where the crashing sessions ran the 'Matcha'
+        // profile but the export captured 'live-builtin'. Ship every profile, with an index so the
+        // reader can tell which is which and which one was active.
+        private static void AddFastFlagProfiles(ZipOutputStream zip)
+        {
+            // Keep the flat entry: it's the active profile's set, and it's what the older bundle
+            // format carried, so anything that reads old exports keeps working.
+            WriteEntry(zip, "fastflags.json", SafeReadFile(App.FastFlags.FileLocation));
+
+            if (string.IsNullOrEmpty(Paths.FastFlagProfiles) || !Directory.Exists(Paths.FastFlagProfiles))
+                return;
+
+            string[] files;
+            try { files = Directory.GetFiles(Paths.FastFlagProfiles, "*.json"); }
+            catch (Exception ex) { App.Logger.WriteException(LOG_IDENT + "::EnumFastFlagProfiles", ex); return; }
+
+            string activeId = App.Settings?.Prop?.ActiveVersionProfileId ?? "";
+
+            var index = new StringBuilder();
+            index.AppendLine("Per-profile FastFlag sets, one file each at fastflags/<profile-id>.json.");
+            index.AppendLine("The active profile's set is also duplicated at the top level as fastflags.json.");
+            index.AppendLine();
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    string id = Path.GetFileNameWithoutExtension(file);
+                    var profile = App.Settings?.Prop?.VersionProfiles?.FirstOrDefault(p => p.Id == id);
+                    string name = profile?.Name ?? "(no matching profile — orphaned flag file)";
+                    string marker = string.Equals(id, activeId, StringComparison.Ordinal) ? "   <-- ACTIVE" : "";
+
+                    index.AppendLine($"{id,-38}  {name}{marker}");
+                    WriteEntry(zip, $"fastflags/{id}.json", SafeReadFile(file), File.GetLastWriteTimeUtc(file));
+                }
+                catch (Exception ex)
+                {
+                    App.Logger.WriteException(LOG_IDENT + "::AddFastFlagProfile::" + Path.GetFileName(file), ex);
+                }
+            }
+
+            WriteEntry(zip, "fastflags/_index.txt", index.ToString());
         }
     }
 }

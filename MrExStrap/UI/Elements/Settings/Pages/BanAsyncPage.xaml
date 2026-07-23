@@ -46,43 +46,6 @@
             </Grid>
         </Border>
 
-        <!-- Volt executor plug (Hyperion emulator + built-in HWID spoofer) — contextual to BanAsync. -->
-        <Border Margin="0,0,0,12" Padding="16,14" CornerRadius="8" Cursor="Hand"
-                Background="{StaticResource BrandSurfaceBrush}" BorderThickness="1.5"
-                BorderBrush="{StaticResource BrandGradientBrush}"
-                ToolTip="https://rsware.store/products/volt-roblox-script-executor-win-10--11">
-            <Border.InputBindings>
-                <MouseBinding MouseAction="LeftClick" Command="vmroot:GlobalViewModel.OpenWebpageCommand"
-                              CommandParameter="https://rsware.store/products/volt-roblox-script-executor-win-10--11" />
-            </Border.InputBindings>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <ui:SymbolIcon Grid.Column="0" Symbol="ShieldKeyhole24" FontSize="30" VerticalAlignment="Center"
-                               Foreground="{StaticResource BrandGreenBrush}" Margin="0,0,14,0" />
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="Best anti-ban executor: Volt" />
-                        <Border Margin="10,0,0,0" Padding="7,2" CornerRadius="4" VerticalAlignment="Center"
-                                Background="{StaticResource BrandPurpleBrush}">
-                            <TextBlock FontSize="10" FontWeight="Bold" Foreground="White" Text="FIRST BUYERS 5% OFF" />
-                        </Border>
-                    </StackPanel>
-                    <TextBlock FontSize="12.5" Margin="0,4,0,0" TextWrapping="Wrap"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Text="A script executor with a Hyperion emulator and built-in HWID spoofer — the strongest one to pair with BanAsync." />
-                </StackPanel>
-                <ui:Button Grid.Column="2" VerticalAlignment="Center" Margin="14,0,0,0" Appearance="Primary"
-                           Icon="Cart24" Content="Get Volt"
-                           Command="vmroot:GlobalViewModel.OpenWebpageCommand"
-                           CommandParameter="https://rsware.store/products/volt-roblox-script-executor-win-10--11" />
-            </Grid>
-        </Border>
-
         <!-- Elevation banner — visible when ExploitStrap is NOT running as administrator. -->
         <Border Margin="0,0,0,8" Padding="12,10" CornerRadius="4"
                 Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"

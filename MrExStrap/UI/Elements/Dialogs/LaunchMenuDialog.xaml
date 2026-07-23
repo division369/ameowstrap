@@ -66,37 +66,6 @@
                         <ui:Hyperlink Icon="PeopleCommunity28" Content="Roblox Exploit Community" NavigateUri="https://robloxscripts.com/" HorizontalAlignment="Center" />
                         <ui:Hyperlink Icon="PlayCircle28" Content="YouTube" NavigateUri="https://www.youtube.com/@RealMrExploit-f5h" HorizontalAlignment="Center" />
                         <ui:Hyperlink Icon="ArrowClockwise24" Content="Check for updates" Command="{Binding CheckForUpdatesCommand, Mode=OneTime}" HorizontalAlignment="Center" />
-
-                        <!-- RSWARE.STORE glass CTA. Whole border is clickable via the MouseBinding. -->
-                        <Border Margin="8,16,8,4" Padding="14,12" CornerRadius="10"
-                                BorderBrush="#3B82F6" BorderThickness="1" Cursor="Hand">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Background" Value="{DynamicResource GlassFillBrush}" />
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource GlassFillHoverBrush}" />
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <Border.InputBindings>
-                                <MouseBinding MouseAction="LeftClick"
-                                              Command="models:GlobalViewModel.OpenWebpageCommand"
-                                              CommandParameter="https://rsware.store/" />
-                            </Border.InputBindings>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                        ToolTip="https://rsware.store/">
-                                <Image Source="pack://application:,,,/Resources/RswareLogo.png" Width="30" Height="30"
-                                       Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
-                                <TextBlock VerticalAlignment="Center" TextAlignment="Center"
-                                           Foreground="#6AA6FF" TextWrapping="Wrap" MaxWidth="200">
-                                    <Run FontSize="15" FontWeight="Bold">RSWARE.STORE</Run>
-                                    <LineBreak />
-                                    <Run FontSize="11" FontWeight="SemiBold">Executors &amp; externals: Potassium, Volt, Severe, Matrix Hub</Run>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
                 </Grid>
 

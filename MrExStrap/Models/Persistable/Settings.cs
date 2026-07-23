@@ -43,6 +43,11 @@ namespace ExploitStrap.Models.Persistable
         // mod preset configuration
         public bool UseDisableAppPatch { get; set; } = false;
 
+        // Removes the client's BRDF lookup texture so lighting flattens out. Can't live in the
+        // Modifications overlay because that only copies files in, and this needs one taken out —
+        // see Utility/FullBright.cs.
+        public bool EnableFullBright { get; set; } = false;
+
         // version downgrade (ExploitStrap fork feature)
         public bool UseCustomVersion { get; set; } = false;
         public string CustomVersionGuid { get; set; } = "";

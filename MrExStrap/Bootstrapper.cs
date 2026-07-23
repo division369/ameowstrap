@@ -242,57 +242,6 @@ namespace ExploitStrap
         // _latestVersionGuid is resolved. Best-effort throughout: any failure
         // logs and falls back to the standard version-<hash> path.
 
-        // If the user is upgrading from v420.23 (or anyone else dropped a real
-        // dir at Versions\version-<hash>\), claim it as the active profile's
-        // install via a zero-copy Directory.Move so they don't redownload.
-        // Only the active profile gets to inherit; other profiles pinning the
-        // same hash redownload into their own profile-<id> dirs on first
-        // launch (correct, since the v420.23 layout shared content and we
-        // can't tell which profile "really" owns the existing files).
-        private void AdoptOrphanRealDirIfApplicable(VersionProfile profile, string profileDir, string junctionPath)
-        {
-            const string LOG_IDENT = "Bootstrapper::AdoptOrphanRealDirIfApplicable";
-
-            if (!Directory.Exists(junctionPath))
-                return;
-            if (VersionJunctionManager.IsJunction(junctionPath))
-                return;
-
-            bool profileDirEmpty = !Directory.Exists(profileDir)
-                || !Directory.EnumerateFileSystemEntries(profileDir).Any();
-
-            try
-            {
-                if (profileDirEmpty)
-                {
-                    if (Directory.Exists(profileDir))
-                        Directory.Delete(profileDir, true);
-                    Directory.Move(junctionPath, profileDir);
-                    profile.InstalledVersionGuid = _latestVersionGuid;
-                    App.Settings.Save();
-                    App.Logger.WriteLine(LOG_IDENT, $"Adopted orphan {junctionPath} for profile '{profile.Name}' -> {profileDir}");
-                }
-                else
-                {
-                    // The profile already has its real install in profileDir, so this
-                    // stray real dir at the junction path is redundant — just delete it
-                    // in place so RecreateActiveProfileJunction can lay the junction back
-                    // down. Previously we renamed it to <name>.orphan-<utc>, but the very
-                    // next CleanupVersionsFolder pass deletes .orphan- dirs, and on a
-                    // machine where this fired against what was really the live junction
-                    // it nuked the profile's install — causing a full re-extract every
-                    // launch (laptop logs 2026-06-01). Deleting the redundant real dir
-                    // directly avoids ever creating an .orphan- that cleanup chases.
-                    Directory.Delete(junctionPath, true);
-                    App.Logger.WriteLine(LOG_IDENT, $"Profile '{profile.Name}' already has its own install dir; removed redundant real dir {junctionPath} so the junction can be recreated.");
-                }
-            }
-            catch (Exception ex)
-            {
-                App.Logger.WriteException(LOG_IDENT, ex);
-            }
-        }
-
         // Clear the contents of a junction's target without deleting the
         // junction itself. Used by UpgradeRoblox and the cancel-cleanup path
         // since Directory.Delete on a junction (even with recursive=true)
@@ -321,23 +270,6 @@ namespace ExploitStrap
             catch (Exception ex)
             {
                 App.Logger.WriteException(LOG_IDENT, ex);
-            }
-        }
-
-        // Tear down any existing entry at junctionPath (junction or stray real
-        // dir we couldn't adopt) and lay down a fresh junction pointing at
-        // profileDir. Delegates to VersionJunctionManager so this code path
-        // and the Versions Manager's "Set as install target" button take the
-        // same route. If mklink fails, log and continue — downstream file ops
-        // will hit the absent junctionPath and the standard install path kicks
-        // in to populate it.
-        private void RecreateActiveProfileJunction(string junctionPath, string profileDir)
-        {
-            const string LOG_IDENT = "Bootstrapper::RecreateActiveProfileJunction";
-
-            if (!VersionJunctionManager.RepointJunction(junctionPath, profileDir))
-            {
-                App.Logger.WriteLine(LOG_IDENT, $"Junction creation failed for {junctionPath} -> {profileDir}; falling back to direct profile dir path.");
             }
         }
 
@@ -681,6 +613,17 @@ namespace ExploitStrap
                 // we require deployment details for applying modifications for a worst case scenario,
                 // where we'd need to restore files from a package that isn't present on disk and needs to be redownloaded
                 allModificationsApplied = await ApplyModifications();
+
+                // FullBright can't ride the Modifications overlay — that copies files in, and this
+                // works by taking one out. Runs after the overlay so a Roblox update, which restores
+                // the texture in a fresh version folder, is picked up on the very next launch.
+                //
+                // Sits inside the !_noConnection block deliberately: it needs _latestVersionDirectory,
+                // which only resolves once we've reached deployment info. So, like every other mod, it
+                // no-ops on an offline launch — including the revert. Turning the toggle off then
+                // launching offline leaves the texture removed until the next online launch.
+                if (!IsStudioLaunch)
+                    Utility.FullBright.Apply(_latestVersionDirectory, App.Settings.Prop.EnableFullBright);
             }
 
             // check registry entries for every launch, just in case the stock bootstrapper changes it back
@@ -721,29 +664,61 @@ namespace ExploitStrap
             const string LOG_IDENT = "Bootstrapper::MaybeSelectEmptiestServer";
 
             if (!App.Settings.Prop.JoinEmptiestServerOnLaunch)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Not selecting a server: the 'join emptiest server on launch' setting is off.");
                 return;
+            }
+
+            App.Logger.WriteLine(LOG_IDENT, "'Join emptiest server on launch' is ON — checking whether this launch can be redirected.");
+            App.Logger.WriteLine(LOG_IDENT, $"Launch mode: {_launchMode}. Launch args: {Utility.LogScrubber.ScrubLaunchArgs(_launchCommandLine)}");
 
             if (_launchMode != LaunchMode.Player)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Not selecting a server: launch mode is {_launchMode}, and only a Player launch can be redirected.");
                 return;
+            }
 
-            if (!Utility.LaunchArgsUtility.IsPlainPlaceJoin(_launchCommandLine))
+            string? notPlain = Utility.LaunchArgsUtility.ExplainNotPlainPlaceJoin(_launchCommandLine);
+            if (notPlain is not null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Not selecting a server: {notPlain}.");
                 return;
+            }
 
             long? placeId = Utility.LaunchArgsUtility.TryExtractPlaceId(_launchCommandLine);
             if (placeId is null || placeId <= 0)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Not selecting a server: could not read a usable placeId (got {placeId?.ToString() ?? "none"}).");
                 return;
+            }
 
             try
             {
+                App.Logger.WriteLine(LOG_IDENT, $"Asking Roblox for the emptiest public server of place {placeId}...");
+
                 var server = await Utility.ServerBrowserClient.GetEmptiestServerAsync(placeId.Value);
                 if (server is null || string.IsNullOrEmpty(server.Id))
                 {
-                    App.Logger.WriteLine(LOG_IDENT, "No joinable public server found; launching normally.");
+                    App.Logger.WriteLine(LOG_IDENT, "Not selecting a server: Roblox returned no joinable public server for this place. Launching normally.");
                     return;
                 }
 
-                _launchCommandLine = Utility.LaunchArgsUtility.InjectGameJob(_launchCommandLine, server.Id);
-                App.Logger.WriteLine(LOG_IDENT, $"Rewrote launch to emptiest server {server.Id} ({server.Playing}/{server.MaxPlayers}).");
+                App.Logger.WriteLine(LOG_IDENT, $"Picked server {server.Id} with {server.Playing}/{server.MaxPlayers} players.");
+
+                string rewritten = Utility.LaunchArgsUtility.InjectGameJob(_launchCommandLine, server.Id);
+
+                // InjectGameJob returns its input untouched when the launch args don't match either
+                // shape it knows how to rewrite. Claiming success there would send us hunting for a
+                // Roblox-side cause when the real failure is right here, so check before believing it.
+                if (rewritten == _launchCommandLine)
+                {
+                    App.Logger.WriteLine(LOG_IDENT, "FAILED to redirect: the launch arguments matched no known rewrite shape (no placelauncherurl and no experiences/start deeplink), so they were left alone. Roblox will pick the server. Please report this log.");
+                    return;
+                }
+
+                _launchCommandLine = rewritten;
+                App.Logger.WriteLine(LOG_IDENT, $"Rewrote launch to join server {server.Id} ({server.Playing}/{server.MaxPlayers}).");
+                App.Logger.WriteLine(LOG_IDENT, $"Rewritten launch args: {Utility.LogScrubber.ScrubLaunchArgs(_launchCommandLine)}");
             }
             catch (Exception ex)
             {
@@ -949,19 +924,13 @@ namespace ExploitStrap
                 var activeProfileForLaunch = GetActiveProfileForBootstrap();
                 if (activeProfileForLaunch != null)
                 {
-                    string profileDir = Path.Combine(Paths.Versions, "profile-" + activeProfileForLaunch.Id);
-                    string junctionPath = Path.Combine(Paths.Versions, _latestVersionGuid);
-
-                    AdoptOrphanRealDirIfApplicable(activeProfileForLaunch, profileDir, junctionPath);
-
-                    Directory.CreateDirectory(profileDir);
-
-                    RecreateActiveProfileJunction(junctionPath, profileDir);
-
-                    // All downstream file ops go through the junction so Process.Start /
-                    // executors see the standard version-<hash> path. Files actually land
-                    // in profileDir via the junction redirect.
-                    _latestVersionDirectory = junctionPath;
+                    // Park-and-rename, replacing the v420.24 junction. The active profile's install
+                    // is moved to a REAL Versions\version-<hash>\ directory and the outgoing profile
+                    // is parked at Versions\profile-<id>\, so the client is never launched through a
+                    // reparse point — which is what was killing it 41-58s into a session. See
+                    // Utility/VersionProfileLayout.cs for the evidence and the full rationale.
+                    _latestVersionDirectory = Utility.VersionProfileLayout.EnsureActive(
+                        activeProfileForLaunch, _latestVersionGuid);
                 }
                 else
                 {
@@ -1628,6 +1597,22 @@ namespace ExploitStrap
             {
                 string dirName = Path.GetFileName(dir);
 
+                // Dot-prefixed names are reserved for our own in-flight staging directories, and
+                // must never be pruned. Nothing creates one yet — this guard ships ahead of the
+                // layout migration on purpose, so it's already in the field before any build starts
+                // producing them.
+                //
+                // Without it a staging dir falls through every branch below (it isn't ".orphan-",
+                // doesn't start with "profile-", isn't a junction, isn't the current state and isn't
+                // referenced by a profile) and lands on the Directory.Delete(dir, true) at the bottom
+                // of this loop — which would take the user's entire Roblox install with it, mid-move.
+                // Same failure class as the two regressions already documented above.
+                if (dirName.StartsWith('.'))
+                {
+                    App.Logger.WriteLine(LOG_IDENT, $"Skipping in-flight staging directory {dirName} — not ours to prune.");
+                    continue;
+                }
+
                 if (dirName.Contains(".orphan-"))
                 {
                     // v420.27+: auto-delete v420.24's orphan-* leftovers. v420.25+
@@ -1682,29 +1667,15 @@ namespace ExploitStrap
 
                 if (isJunction)
                 {
-                    // Junctions point at a profile-<id> dir under Paths.Versions. If
-                    // the target is gone OR no profile claims this hash anymore,
-                    // prune the dangling reparse point. Cheap, safe.
-                    bool keep = referencedByProfile;
-                    if (keep)
-                    {
-                        // Verify target still resolves — broken junctions are useless.
-                        try
-                        {
-                            keep = Directory.EnumerateFileSystemEntries(dir).Any()
-                                   || Directory.Exists(dir);
-                        }
-                        catch
-                        {
-                            keep = false;
-                        }
-                    }
+                    // Junctions are the v420.24 layout and are no longer created — launching a
+                    // client through a reparse point is what Hyperion was killing sessions over.
+                    // Unlink any that survive from an older install, unconditionally. This only
+                    // removes the link; the profile-<id> directory it pointed at stays put, already
+                    // in the parked shape the new layout expects, so no data moves and the
+                    // migration costs nothing. See Utility/VersionProfileLayout.cs.
+                    if (VersionJunctionManager.DeleteJunction(dir))
+                        App.Logger.WriteLine(LOG_IDENT, $"Removed legacy junction {dirName} (migrated to the park-and-rename layout)");
 
-                    if (!keep)
-                    {
-                        if (VersionJunctionManager.DeleteJunction(dir))
-                            App.Logger.WriteLine(LOG_IDENT, $"Pruned stale junction {dirName}");
-                    }
                     continue;
                 }
 

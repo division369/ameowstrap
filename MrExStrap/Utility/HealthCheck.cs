@@ -113,6 +113,35 @@ namespace ExploitStrap.Utility
                     ? (CheckStatus.Ok, App.State.FileLocation)
                     : (CheckStatus.Warn, "in-memory only — will persist on next save")));
 
+            // Roblox's deepest content files sit ~170 characters below the version folder
+            // (ExtraContent\LuaPackages\Packages\_Index\... measured against a real install), and
+            // Win32 caps a path at 260 unless long paths are enabled. Custom Versions Manager
+            // profiles use a 36-character GUID in the folder name, which is enough on its own to
+            // push those files over the limit — extraction then fails file by file, silently.
+            // Report the real headroom so it's visible in a diagnostics bundle instead of showing
+            // up as an unexplained broken install.
+            results.Add(Safe(cat, "Install path length headroom", () =>
+            {
+                const int RobloxDeepestTail = 170;
+                const int MaxPath = 260;
+
+                int longestProfileSegment = App.Settings.Prop.VersionProfiles.Count == 0
+                    ? "profile-live-builtin".Length
+                    : App.Settings.Prop.VersionProfiles.Max(p => ("profile-" + p.Id).Length);
+
+                // +1 for the separator after the profile segment.
+                int worst = Paths.Versions.Length + 1 + longestProfileSegment + 1 + RobloxDeepestTail;
+                int headroom = MaxPath - worst;
+
+                string detail = $"deepest expected path ≈ {worst} chars vs the {MaxPath} limit "
+                              + $"(base {Paths.Versions.Length}, longest profile folder {longestProfileSegment})";
+
+                return headroom >= 0
+                    ? (CheckStatus.Ok, $"{headroom} chars spare — {detail}")
+                    : (CheckStatus.Warn, $"OVER by {-headroom} chars — {detail}. Deep Roblox files may fail to extract; "
+                                       + "use a shorter install path or fewer custom version profiles.");
+            }));
+
             results.Add(Safe(cat, ".NET runtime",
                 () => (CheckStatus.Ok, RuntimeInformation.FrameworkDescription)));
 
@@ -226,8 +255,8 @@ namespace ExploitStrap.Utility
                 "https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer");
             await ProbeAsync(results, cat, "Roblox setup CDN",
                 "https://setup.rbxcdn.com/version");
-            await ProbeAsync(results, cat, "GitHub API (update check)",
-                $"https://api.github.com/repos/{App.ProjectRepository}/releases/latest");
+            await ProbeAsync(results, cat, "Update server (release check)",
+                $"{App.ProjectApiBase}/repos/{App.ProjectRepository}/releases/latest");
             await ProbeAsync(results, cat, "WEAO (executor match)",
                 "https://weao.xyz/api/status/exploits");
         }

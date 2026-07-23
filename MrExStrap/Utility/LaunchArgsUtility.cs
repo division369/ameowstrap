@@ -113,23 +113,30 @@ namespace ExploitStrap.Utility
         // redirect to a specific server. Skips: no place / home screen (no placeId), VIP or private
         // servers (accessCode / RequestPrivateGame), and launches already targeting a specific server
         // (RequestGameJob, or a deeplink gameInstanceId).
-        public static bool IsPlainPlaceJoin(string commandLine)
+        public static bool IsPlainPlaceJoin(string commandLine) => ExplainNotPlainPlaceJoin(commandLine) is null;
+
+        /// <summary>
+        /// Why <see cref="IsPlainPlaceJoin"/> said no, in words fit for a log line. Returns null
+        /// when it IS a plain place join. Split out so the caller can tell the user which of the
+        /// four conditions blocked a server redirect instead of just going quiet.
+        /// </summary>
+        public static string? ExplainNotPlainPlaceJoin(string commandLine)
         {
             if (string.IsNullOrWhiteSpace(commandLine))
-                return false;
+                return "no launch arguments were given (launched straight from the app, not from a game page)";
 
             if (TryExtractPlaceId(commandLine) is null)
-                return false; // no place — home screen / app launch
+                return "no placeId in the launch arguments — this is a home screen / app launch, not a game join";
 
             if (TryExtractAccessCode(commandLine) is not null)
-                return false; // VIP / private server
+                return "the launch carries an accessCode, so this is a VIP / private server";
 
             if (commandLine.Contains("RequestGameJob", StringComparison.OrdinalIgnoreCase)
                 || commandLine.Contains("RequestPrivateGame", StringComparison.OrdinalIgnoreCase)
                 || commandLine.Contains("gameInstanceId", StringComparison.OrdinalIgnoreCase))
-                return false; // already targeting a specific server
+                return "the launch already targets one specific server (RequestGameJob / RequestPrivateGame / gameInstanceId), for example a 'join friend' or a server-browser join";
 
-            return true;
+            return null;
         }
 
         // Redirect a plain place-join to a specific server (jobId). For the protocol launch shape it

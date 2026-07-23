@@ -376,6 +376,10 @@ namespace ExploitStrap
                 }
             }
 
+            // Game picker runs first: it can put a placeId into the launch args, which the VIP
+            // picker below then has something to work with.
+            MaybeShowGamePicker(launchMode);
+
             MaybeShowVipServerPicker(launchMode);
 
             // Version picker (v420.22+). Pops a small "pick a version" dialog AFTER the
@@ -501,6 +505,69 @@ namespace ExploitStrap
         // Returns true if the launch should proceed (either picker disabled, user
         // confirmed a selection, or the optional non-LIVE confirmation passed).
         // Returns false if the user cancelled — caller App.Terminate's the launch.
+        // Pre-launch hook that makes "join the emptiest server on launch" work no matter how the
+        // user started Roblox. Launching from a game page already carries a placeId, so there's
+        // nothing to ask. Launching from ExploitStrap or the tray carries nothing at all, and the
+        // setting would silently do nothing — so ask which game, then synthesize the same kind of
+        // deeplink a website launch would have produced.
+        //
+        // Everything downstream is unchanged: the bootstrapper's MaybeSelectEmptiestServerAsync
+        // sees a normal plain place join and rewrites it to the emptiest server as usual.
+        private static void MaybeShowGamePicker(LaunchMode launchMode)
+        {
+            const string LOG_IDENT = "LaunchHandler::MaybeShowGamePicker";
+
+            if (!App.Settings.Prop.JoinEmptiestServerOnLaunch)
+                return;
+
+            if (launchMode != LaunchMode.Player)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Skipping game picker: launch mode is {launchMode}, not Player.");
+                return;
+            }
+
+            if (App.LaunchSettings.QuietFlag.Active)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Skipping game picker: quiet flag active (silent/background launch).");
+                return;
+            }
+
+            // Already joining something specific (game page, friend join, VIP, rejoin) — leave it
+            // alone. This is the path that already worked.
+            if (Utility.LaunchArgsUtility.TryExtractPlaceId(App.LaunchSettings.RobloxLaunchArgs) is not null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Skipping game picker: the launch already carries a placeId.");
+                return;
+            }
+
+            App.Logger.WriteLine(LOG_IDENT, "Launch has no game attached and the emptiest-server setting is on — asking which game to join.");
+
+            long? picked;
+            try
+            {
+                var dialog = new UI.Elements.Dialogs.GamePickerDialog();
+                dialog.ShowDialog();
+                picked = dialog.PickedPlaceId;
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Game picker dialog failed; launching normally.");
+                App.Logger.WriteException(LOG_IDENT, ex);
+                return;
+            }
+
+            if (picked is null or <= 0)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "User skipped the game picker — launching Roblox normally.");
+                return;
+            }
+
+            // Same deeplink shape the Server Browser's join uses. No auth ticket needed: the Roblox
+            // client joins as whoever is already signed in.
+            App.LaunchSettings.RobloxLaunchArgs = $"roblox://experiences/start?placeId={picked}";
+            App.Logger.WriteLine(LOG_IDENT, $"User picked place {picked}; launch args set to a plain place join for the emptiest-server pass.");
+        }
+
         private static bool MaybeShowVersionPicker(LaunchMode launchMode)
         {
             const string LOG_IDENT = "LaunchHandler::MaybeShowVersionPicker";

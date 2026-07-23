@@ -42,12 +42,35 @@ namespace ExploitStrap.Utility
         {
             var resp = await FetchServersAsync(placeId, null, sortOrder: 1);
             if (resp?.Data is null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"GetEmptiestServer: the servers API returned nothing for place {placeId} (request failed, or the place has no public servers).");
                 return null;
+            }
 
-            return resp.Data
+            var joinable = resp.Data
                 .Where(s => !string.IsNullOrEmpty(s.Id) && s.Playing < s.MaxPlayers)
                 .OrderBy(s => s.Playing)
-                .FirstOrDefault();
+                .ToList();
+
+            if (joinable.Count == 0)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"GetEmptiestServer: {resp.Data.Count} server(s) came back for place {placeId}, but none had a free slot.");
+                return null;
+            }
+
+            var best = joinable[0];
+
+            // The API hands back one page. If every server on it is busy, the emptiest one we can
+            // offer may still be fairly full — that reads as "it ignored my setting" from the
+            // user's side, so record what we actually had to choose between.
+            App.Logger.WriteLine(LOG_IDENT,
+                $"GetEmptiestServer: {resp.Data.Count} server(s) returned, {joinable.Count} joinable, " +
+                $"player counts {best.Playing}-{joinable[^1].Playing}. Choosing {best.Id} ({best.Playing}/{best.MaxPlayers}).");
+
+            if (best.Playing > 0 && best.MaxPlayers > 0 && best.Playing >= best.MaxPlayers * 0.75)
+                App.Logger.WriteLine(LOG_IDENT, "GetEmptiestServer: note — even the emptiest server on this page is fairly full, so the join may not look 'low player'.");
+
+            return best;
         }
 
         // Region lookups need a saved account to authenticate the gamejoin call. The server IP is the

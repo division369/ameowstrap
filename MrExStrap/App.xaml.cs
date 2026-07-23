@@ -17,9 +17,16 @@ namespace ExploitStrap
         public const string ProjectDisplayName = "ExploitStrap";
         public const string ProjectOwner = "ExploitStrap";
         public const string ProjectRepository = "RealSlimShady2000/MrExLiveChannelForcer";
-        public const string ProjectDownloadLink = "https://github.com/RealSlimShady2000/MrExLiveChannelForcer";
-        public const string ProjectHelpLink = "https://github.com/RealSlimShady2000/MrExLiveChannelForcer#readme";
-        public const string ProjectSupportLink = "https://github.com/RealSlimShady2000/MrExLiveChannelForcer/issues/new";
+
+        // The fork moved off GitHub (the account was delisted there) to a self-hosted Forgejo
+        // instance at sirmemegithub.com. Forgejo's REST API is Gitea/GitHub-compatible, so the
+        // auto-updater only needs the base URL swapped — GithubRelease still deserializes the
+        // same tag_name / assets / browser_download_url shape the release JSON returns.
+        public const string ProjectHost = "https://sirmemegithub.com";
+        public const string ProjectApiBase = $"{ProjectHost}/api/v1";
+        public const string ProjectDownloadLink = $"{ProjectHost}/{ProjectRepository}";
+        public const string ProjectHelpLink = $"{ProjectHost}/{ProjectRepository}";
+        public const string ProjectSupportLink = $"{ProjectHost}/{ProjectRepository}/issues/new";
 
         // Fork support channels — where users send their crash logs. Surfaced on every
         // error/crash dialog so a non-developer audience never has to touch GitHub.
@@ -258,7 +265,7 @@ namespace ExploitStrap
 
             try
             {
-                var releaseInfo = await Http.GetJson<GithubRelease>($"https://api.github.com/repos/{ProjectRepository}/releases/latest", token);
+                var releaseInfo = await Http.GetJson<GithubRelease>($"{ProjectApiBase}/repos/{ProjectRepository}/releases/latest", token);
 
                 if (releaseInfo is null || releaseInfo.Assets is null)
                 {

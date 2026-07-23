@@ -494,7 +494,20 @@ namespace ExploitStrap.UI.ViewModels.Settings
         public string? SelectedCustomTheme
         {
             get => App.Settings.Prop.SelectedCustomTheme;
-            set => App.Settings.Prop.SelectedCustomTheme = value;
+            set
+            {
+                App.Settings.Prop.SelectedCustomTheme = value;
+
+                // The list binds straight to this, so it's the only place that knows the
+                // selection moved. Seed the rename box from the current name and let the
+                // action buttons re-evaluate IsEnabled — without this they stay greyed out
+                // no matter what you click.
+                SelectedCustomThemeName = value ?? "";
+
+                OnPropertyChanged(nameof(SelectedCustomTheme));
+                OnPropertyChanged(nameof(SelectedCustomThemeName));
+                OnPropertyChanged(nameof(IsCustomThemeSelected));
+            }
         }
 
         public string SelectedCustomThemeName { get; set; } = "";

@@ -180,8 +180,5 @@
             <ui:Button Grid.Column="1" Icon="ArrowDown24" Content="Load more"
                        Command="{Binding LoadMoreCommand}" IsEnabled="{Binding CanLoadMore}" />
         </Grid>
-
-        <!-- Store plug -->
-        <controls:StorePromoBanner Grid.Row="5" Margin="0,14,0,0" />
     </Grid>
 </ui:UiPage>

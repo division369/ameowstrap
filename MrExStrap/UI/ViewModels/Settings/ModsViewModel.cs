@@ -18,6 +18,14 @@ namespace ExploitStrap.UI.ViewModels.Settings
     {
         private void OpenModsFolder() => Process.Start("explorer.exe", Paths.Modifications);
 
+        // Applied at launch by Utility.FullBright rather than through the overlay, since the effect
+        // comes from a file being absent. Takes effect on the next launch, like the other presets.
+        public bool EnableFullBright
+        {
+            get => App.Settings.Prop.EnableFullBright;
+            set { App.Settings.Prop.EnableFullBright = value; OnPropertyChanged(nameof(EnableFullBright)); }
+        }
+
         private readonly Dictionary<string, byte[]> FontHeaders = new()
         {
             { "ttf", new byte[4] { 0x00, 0x01, 0x00, 0x00 } },

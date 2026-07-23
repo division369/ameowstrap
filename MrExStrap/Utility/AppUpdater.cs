@@ -68,7 +68,7 @@ namespace ExploitStrap.Utility
                 var asset = PickExeAsset(release);
                 if (asset is null)
                 {
-                    string reason = $"The {release.TagName} release has no .exe asset attached. Grab the installer manually from the GitHub releases page.";
+                    string reason = $"The {release.TagName} release has no .exe asset attached. Grab the installer manually from the releases page.";
                     App.Logger.WriteLine(LOG_IDENT, reason);
                     return UpgradeResult.Fail(reason);
                 }
@@ -105,11 +105,11 @@ namespace ExploitStrap.Utility
                     int code = (int)response.StatusCode;
                     string reason = code switch
                     {
-                        403 => $"GitHub returned 403 (forbidden) downloading {asset.Name}. Your network or a firewall may be blocking the request.",
-                        404 => $"GitHub returned 404 (not found) downloading {asset.Name}. The release may have been deleted or renamed.",
-                        429 => $"GitHub returned 429 (rate limited) downloading {asset.Name}. Wait a minute and try again.",
-                        >= 500 and < 600 => $"GitHub returned {code} downloading {asset.Name}. GitHub is having issues — try again shortly.",
-                        _ => $"GitHub returned HTTP {code} downloading {asset.Name}."
+                        403 => $"The update server returned 403 (forbidden) downloading {asset.Name}. Your network or a firewall may be blocking the request.",
+                        404 => $"The update server returned 404 (not found) downloading {asset.Name}. The release may have been deleted or renamed.",
+                        429 => $"The update server returned 429 (rate limited) downloading {asset.Name}. Wait a minute and try again.",
+                        >= 500 and < 600 => $"The update server returned {code} downloading {asset.Name}. It's having issues — try again shortly.",
+                        _ => $"The update server returned HTTP {code} downloading {asset.Name}."
                     };
                     App.Logger.WriteLine(LOG_IDENT, reason);
                     return UpgradeResult.Fail(reason);
@@ -240,7 +240,7 @@ namespace ExploitStrap.Utility
             var inner = ex.InnerException;
             if (inner is AuthenticationException)
             {
-                return "TLS handshake with GitHub failed. Antivirus HTTPS inspection or missing Windows TLS updates is the usual culprit.";
+                return "TLS handshake with the update server failed. Antivirus HTTPS inspection or missing Windows TLS updates is the usual culprit.";
             }
 
             // TLS stream corrupted mid-flight (IOException "...corrupted frame...", wrapped as
@@ -249,7 +249,7 @@ namespace ExploitStrap.Utility
             // failed self-update points at the real cause instead of a vague network error.
             if (IsTlsStreamCorruption(ex))
             {
-                return "The secure connection to GitHub was corrupted before it finished (a TLS frame came back malformed). " +
+                return "The secure connection to the update server was corrupted before it finished (a TLS frame came back malformed). " +
                        "This is almost always antivirus HTTPS/SSL scanning, or a filtering proxy or VPN. " +
                        "Add ExploitStrap to your antivirus's exclusions or turn off its HTTPS/SSL scanning, then try again.";
             }
@@ -259,18 +259,18 @@ namespace ExploitStrap.Utility
                 return sock.SocketErrorCode switch
                 {
                     SocketError.HostNotFound =>
-                        "Couldn't resolve github.com. Your DNS server may be blocking it — try switching DNS to 1.1.1.1 or 8.8.8.8.",
+                        "Couldn't resolve sirmemegithub.com. Your DNS server may be blocking it — try switching DNS to 1.1.1.1 or 8.8.8.8.",
                     SocketError.ConnectionRefused or SocketError.NetworkUnreachable or SocketError.HostUnreachable =>
-                        "Couldn't reach GitHub. A firewall or VPN may be blocking outbound HTTPS to github.com.",
+                        "Couldn't reach the update server. A firewall or VPN may be blocking outbound HTTPS to sirmemegithub.com.",
                     SocketError.TimedOut =>
-                        "Connection to GitHub timed out. Network is slow or being filtered silently.",
-                    _ => $"Network error contacting GitHub (socket: {sock.SocketErrorCode}). Check your connection and retry."
+                        "Connection to the update server timed out. Network is slow or being filtered silently.",
+                    _ => $"Network error contacting the update server (socket: {sock.SocketErrorCode}). Check your connection and retry."
                 };
             }
             string msg = (inner?.Message ?? ex.Message).Trim();
             return string.IsNullOrEmpty(msg)
-                ? "Network error contacting GitHub."
-                : $"Network error contacting GitHub: {msg}.";
+                ? "Network error contacting the update server."
+                : $"Network error contacting the update server: {msg}.";
         }
 
         // Walk the inner-exception chain for the signature of a corrupted TLS stream (AV HTTPS

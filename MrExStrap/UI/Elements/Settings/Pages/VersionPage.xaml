@@ -17,7 +17,6 @@
     </ui:UiPage.Resources>
 
     <StackPanel Margin="0,0,14,14">
-        <controls:StorePromoBanner />
         <TextBlock Margin="0,0,0,8"
                    Text="Pin the Roblox client to a specific build instead of downloading the latest. The channel is always forced to LIVE regardless of the build you pin."
                    FontSize="14" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

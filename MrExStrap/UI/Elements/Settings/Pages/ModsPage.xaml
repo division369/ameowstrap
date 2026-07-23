@@ -86,6 +86,12 @@
             </ComboBox>
         </controls:OptionControl>
 
+        <controls:OptionControl
+            Header="FullBright"
+            Description="Flattens the client's lighting by removing its BRDF lookup texture, so dark areas stop being dark. Doesn't use Fast Flags, so it still works with the allowlist — but Lighting Fast Flags set on the Engine Settings page will override it. Applies on the next launch, and reverts cleanly when turned off.">
+            <ui:ToggleSwitch IsChecked="{Binding EnableFullBright, Mode=TwoWay}" />
+        </controls:OptionControl>
+
         <TextBlock Text="{x:Static resources:Strings.Common_Miscellaneous}" FontSize="20" FontWeight="Medium" Margin="0,16,0,0" />
 
         <controls:OptionControl 

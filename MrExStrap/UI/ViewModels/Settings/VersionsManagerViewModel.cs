@@ -281,37 +281,25 @@ namespace ExploitStrap.UI.ViewModels.Settings
             var confirm = Frontend.ShowMessageBox(
                 $"Make '{profile.Name}' the install target?\n\n" +
                 "When you run an executor installer that writes files into the standard Roblox folder, the files will land in this profile.\n\n" +
-                $"Link: Versions\\{profile.VersionGuid}  ->  Versions\\profile-{profile.Id}",
+                $"Moves it to Versions\\{profile.VersionGuid} and parks whichever profile is there now.",
                 MessageBoxImage.Information,
                 MessageBoxButton.YesNo,
                 MessageBoxResult.Yes);
             if (confirm != MessageBoxResult.Yes) return;
 
-            string profileDir = Path.Combine(Paths.Versions, "profile-" + profile.Id);
-            string junctionPath = Path.Combine(Paths.Versions, profile.VersionGuid);
+            // Being the install target now just means being the unparked profile, so this is the
+            // same park-and-rename the bootstrapper does at launch.
+            string resolved = ExploitStrap.Utility.VersionProfileLayout.EnsureActive(profile, profile.VersionGuid);
 
-            try
+            if (ExploitStrap.Utility.VersionProfileLayout.IsInstallTarget(profile.Id))
             {
-                Directory.CreateDirectory(profileDir);
-            }
-            catch (Exception ex)
-            {
-                App.Logger.WriteException(LOG_IDENT + "::SetAsInstallTarget", ex);
-                Frontend.ShowMessageBox(
-                    $"Couldn't prepare the profile folder: {ex.Message}",
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            if (VersionJunctionManager.RepointJunction(junctionPath, profileDir))
-            {
-                App.Logger.WriteLine(LOG_IDENT, $"Set '{profile.Name}' as install target: {junctionPath} -> {profileDir}");
+                App.Logger.WriteLine(LOG_IDENT, $"Set '{profile.Name}' as install target: {resolved}");
                 RebuildTiles();
             }
             else
             {
                 Frontend.ShowMessageBox(
-                    "Couldn't update the install link. Check the log for details.",
+                    "Couldn't move that profile into place — if Roblox is running, close it and try again. Check the log for details.",
                     MessageBoxImage.Error);
             }
         }
@@ -452,23 +440,13 @@ namespace ExploitStrap.UI.ViewModels.Settings
             }
         }
 
-        // True when Versions\<versionGuid>\ is a junction whose target's folder
-        // name is "profile-<profileId>". This is how the Versions Manager tile
-        // knows whether to render the "Install target" badge. Does junction I/O,
-        // so it runs on the view model's background scan, not tile construction.
+        // True when this profile owns the unparked install at Versions\version-<hash>\, which is
+        // what the tile's "Install target" badge means. Used to resolve a junction target; with the
+        // junction gone (see Utility/VersionProfileLayout.cs) being unparked IS being the target,
+        // since that's the folder an executor installer writing to the standard Roblox path lands
+        // in. Now a State lookup rather than disk I/O, so it no longer needs the background scan.
         internal static bool ResolveIsInstallTarget(string versionGuid, string profileId)
-        {
-            if (string.IsNullOrEmpty(versionGuid))
-                return false;
-
-            string junctionPath = Path.Combine(Paths.Versions, versionGuid);
-            string? target = VersionJunctionManager.GetJunctionTargetName(junctionPath);
-            if (string.IsNullOrEmpty(target))
-                return false;
-
-            string targetName = Path.GetFileName(target.TrimEnd('\\', '/'));
-            return string.Equals(targetName, "profile-" + profileId, StringComparison.OrdinalIgnoreCase);
-        }
+            => ExploitStrap.Utility.VersionProfileLayout.IsInstallTarget(profileId);
 
         private static string FormatLastRefresh(DateTime? lastUtc)
         {

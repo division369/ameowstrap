@@ -24,9 +24,6 @@
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                    Text="Save named profiles (one per executor or 'Latest LIVE') and switch between them with one click. The active profile is used the next time you launch Roblox. Every profile's Roblox install is kept on disk so switching is instant." />
 
-        <!-- Store plug: rsware.store -->
-        <controls:StorePromoBanner />
-
         <!-- Active profile summary card -->
         <Border Margin="0,0,0,12" Padding="14,12" CornerRadius="6"
                 Background="{DynamicResource ControlFillColorDefaultBrush}"

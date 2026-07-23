@@ -84,9 +84,6 @@
                        Content="Save and launch Roblox"
                        Command="{Binding DataContext.SaveAndLaunchCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" />
 
-            <!-- Store plug: rsware.store -->
-            <controls:StorePromoBanner Margin="6,18,6,0" />
-
             <TextBlock HorizontalAlignment="Center" Margin="0,14,0,0" FontSize="12"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="LIVE channel is re-locked on every launch." />

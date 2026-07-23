@@ -179,7 +179,7 @@ namespace ExploitStrap.UI.ViewModels.Installer
                         "This is a portable build, so it can't update itself. Download the new portable build from the releases page. Open it now?",
                         MessageBoxImage.Information, MessageBoxButton.YesNo, MessageBoxResult.Yes);
                     if (open == MessageBoxResult.Yes)
-                        Utilities.ShellExecute($"https://github.com/{App.ProjectRepository}/releases/latest");
+                        Utilities.ShellExecute($"{App.ProjectHost}/{App.ProjectRepository}/releases/latest");
                     return;
                 }
 

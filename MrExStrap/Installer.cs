@@ -763,7 +763,7 @@ namespace ExploitStrap
                         releaseNoteVersion = currentVer;
                     }
 
-                    Utilities.ShellExecute($"https://github.com/{App.ProjectRepository}/wiki/Release-notes-for-ExploitStrap-v{releaseNoteVersion}");
+                    Utilities.ShellExecute($"{App.ProjectHost}/{App.ProjectRepository}/releases");
                 }
 #pragma warning restore CS0162 // Unreachable code detected
             }

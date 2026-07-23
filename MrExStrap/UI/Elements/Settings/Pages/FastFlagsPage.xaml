@@ -13,7 +13,6 @@
       Scrollable="True"
       Loaded="Page_Loaded">
     <StackPanel Margin="0,0,14,14">
-        <controls:StorePromoBanner />
         <TextBlock Margin="0,0,0,8" Text="{x:Static resources:Strings.Menu_FastFlags_Description}" FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
         <!-- ===== Per-profile selector ===== -->

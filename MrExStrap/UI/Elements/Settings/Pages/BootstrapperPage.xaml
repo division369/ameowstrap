@@ -31,7 +31,7 @@
 
         <controls:OptionControl
             Header="Join the emptiest server on launch"
-            Description="When on, a normal game launch drops you into the least-populated public server of that game instead of letting Roblox pick. Adds a moment to launch while it finds the server. Only applies to normal game launches — friend joins, Server Browser joins, VIP servers and re-joins are left alone, and it falls back to a normal launch if it can't find one.">
+            Description="When on, a game launch drops you into the least-populated public server instead of letting Roblox pick. Works either way you launch: press Play on a game's page and it redirects you straight away, or open ExploitStrap (or the tray icon) and it asks which game you want first, offering the ones you've played recently. Adds a moment to launch while it finds the server. Friend joins, Server Browser joins, VIP servers and re-joins are left alone, and it falls back to a normal launch if it can't find a server.">
             <ui:ToggleSwitch IsChecked="{Binding JoinEmptiestServerOnLaunch, Mode=TwoWay}" />
         </controls:OptionControl>
 

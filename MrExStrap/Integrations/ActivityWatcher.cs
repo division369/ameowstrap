@@ -274,6 +274,8 @@ namespace ExploitStrap.Integrations
                     InGame = true;
                     Data.TimeJoined = DateTime.Now;
 
+                    RecordRecentPlace();
+
                     OnGameJoin?.Invoke(this, EventArgs.Empty);
                 }
             }
@@ -380,6 +382,30 @@ namespace ExploitStrap.Integrations
 
                     LastRPCRequest = DateTime.Now;
                 }
+            }
+        }
+
+        // Remember what the user actually plays, so the launch-time game picker has something to
+        // offer when a launch arrives with no game attached (opened from the app or the tray).
+        // Best-effort in every direction: the universe details are cached and may not have resolved
+        // a title yet, and PushRecentPlace keeps any name we already had in that case.
+        private void RecordRecentPlace()
+        {
+            const string LOG_IDENT = "ActivityWatcher::RecordRecentPlace";
+
+            try
+            {
+                if (Data.PlaceId <= 0)
+                    return;
+
+                // Private/reserved servers are still worth remembering as a game — the picker only
+                // ever uses the placeId to look up public servers.
+                App.State.Prop.PushRecentPlace(Data.PlaceId, Data.UniverseDetails?.Data.Name);
+                App.State.Save();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT, ex);
             }
         }
 
