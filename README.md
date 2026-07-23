@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD033 MD041 -->
 
 > [!CAUTION]
-> The only official place to download ExploitStrap is **this GitHub repository** — the [Releases page](https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases). Anywhere else offering "ExploitStrap" is not us. Don't download from them.
+> The only official place to download ExploitStrap is **our repo at sirmemegithub.com** — the [Releases page](https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/releases). Anywhere else offering "ExploitStrap" is not us. Don't download from them.
 
 <p align="center">
   <img src="MrExStrap/Resources/ExploitStrap.png" alt="ExploitStrap" width="520">
@@ -9,16 +9,13 @@
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-success" alt="License: MIT"></a>
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/actions/workflows/ci-release.yml"><img src="https://img.shields.io/github/actions/workflow/status/RealSlimShady2000/MrExLiveChannelForcer/ci-release.yml?branch=main&label=build" alt="Build status"></a>
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest"><img src="https://img.shields.io/github/downloads/RealSlimShady2000/MrExLiveChannelForcer/latest/total?label=downloads%40latest&color=8b5cf6" alt="Downloads (latest release)"></a>
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases"><img src="https://img.shields.io/github/downloads/RealSlimShady2000/MrExLiveChannelForcer/total?label=downloads%40total&color=8b5cf6" alt="Downloads (all releases, all time)"></a>
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest"><img src="https://img.shields.io/github/v/release/RealSlimShady2000/MrExLiveChannelForcer?label=release&color=8b5cf6" alt="Latest release"></a>
+  <a href="https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest"><img src="https://img.shields.io/gitea/v/release/RealSlimShady2000/MrExLiveChannelForcer?gitea_url=https%3A%2F%2Fsirmemegithub.com&label=release&color=8b5cf6" alt="Latest release"></a>
   <a href="https://discord.robloxscripts.com"><img src="https://img.shields.io/discord/1424371108244619377?label=discord&logo=discord&logoColor=white&color=5865F2" alt="Discord — join us"></a>
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/stargazers"><img src="https://img.shields.io/github/stars/RealSlimShady2000/MrExLiveChannelForcer?label=stars&color=f59e0b" alt="GitHub stars"></a>
+  <a href="https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer"><img src="https://img.shields.io/gitea/stars/RealSlimShady2000/MrExLiveChannelForcer?gitea_url=https%3A%2F%2Fsirmemegithub.com&label=stars&color=f59e0b" alt="Stars"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest/download/ExploitStrap.exe">
+  <a href="https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/releases/latest">
     <img src="https://img.shields.io/badge/%E2%AC%87%20Download%20ExploitStrap-Latest%20release-22D3EE?style=for-the-badge&logo=windows&logoColor=white" alt="Download the latest ExploitStrap release">
   </a>
 </p>
@@ -43,7 +40,7 @@
 
 ## Install
 
-1. Download the latest `ExploitStrap-vX.Y.exe` from the [Releases page](https://github.com/RealSlimShady2000/MrExLiveChannelForcer/releases).
+1. Download the latest `ExploitStrap-vX.Y.exe` from the [Releases page](https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/releases).
 2. Run it. It's self-contained (no .NET install needed) and lands in `%localappdata%\ExploitStrap`.
 
 To uninstall: **Windows Settings → Apps**, search "ExploitStrap" — or run `ExploitStrap.exe -uninstall`.
@@ -58,14 +55,14 @@ Want to be sure your copy is genuine? Check its SHA-256 against the `SHA256SUMS`
 <summary><b>Build it yourself · recover a quarantined file</b></summary>
 
 ```
-git clone --recurse-submodules https://github.com/RealSlimShady2000/MrExLiveChannelForcer.git
+git clone --recurse-submodules https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer.git
 cd MrExLiveChannelForcer
 dotnet publish MrExStrap/ExploitStrap.csproj -p:PublishSingleFile=true -r win-x64 -c Release --self-contained true
 ```
 
 Output lands at `MrExStrap/bin/Release/net6.0-windows/win-x64/publish/ExploitStrap.exe`.
 
-If Defender already quarantined it: **Windows Security → Virus & threat protection → Protection history → Restore**, then add an exclusion for `%localappdata%\ExploitStrap`. If the auto-updater's download keeps getting flagged, grab the new release manually from GitHub. Each release is submitted to Microsoft as a false positive, which usually clears within a few days.
+If Defender already quarantined it: **Windows Security → Virus & threat protection → Protection history → Restore**, then add an exclusion for `%localappdata%\ExploitStrap`. If the auto-updater's download keeps getting flagged, grab the new release manually from the [Releases page](https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/releases). Each release is submitted to Microsoft as a false positive, which usually clears within a few days.
 
 </details>
 
@@ -81,7 +78,7 @@ If Defender already quarantined it: **Windows Security → Virus & threat protec
 
 Vibe pasted by **Sir Meme** — in the Roblox community since 2017, formerly Synapse Softworks LLC, now runs [robloxscripts.com](https://robloxscripts.com) and [rsware.store](https://rsware.store). Vibe coded with Claude.
 
-Found a bug? [Open an issue](https://github.com/RealSlimShady2000/MrExLiveChannelForcer/issues) or ask in the [Discord](https://discord.robloxscripts.com).
+Found a bug? [Open an issue](https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/issues) or ask in the [Discord](https://discord.robloxscripts.com).
 
 ## License
 
