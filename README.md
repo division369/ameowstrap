@@ -83,3 +83,9 @@ Found a bug? [Open an issue](https://sirmemegithub.com/RealSlimShady2000/MrExLiv
 ## License
 
 [MIT](./LICENSE), inherited from [vanilla Bloxstrap](https://github.com/bloxstraplabs/bloxstrap) by pizzaboxer et al. This fork's changes are © 2026 RealSlimShady2000.
+
+<!-- sirmeme-watermark -->
+
+---
+<sub>⭐ <b>Official source:</b> <a href="https://sirmemegithub.com/RealSlimShady2000/mrexlivechannelforcer">sirmemegithub.com/RealSlimShady2000/mrexlivechannelforcer</a> &nbsp;·&nbsp; built &amp; maintained by <b>SirMeme</b>. Got this somewhere else? Grab the latest, verified version at the link above.</sub>
+<!-- /sirmeme-watermark -->
