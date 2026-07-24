@@ -1043,6 +1043,25 @@ namespace ExploitStrap
                 return false;
             }
 
+            // A background update relies on the new build going into a directory nothing is
+            // running from — upstream gets that for free because the old client sits in
+            // version-<oldHash>\ and the installer writes version-<newHash>\. Park-and-rename
+            // breaks that assumption: the active profile's install is renamed INTO
+            // version-<newHash>\ before the version check, so the client this launch is about to
+            // start and the directory the updater would extract into are the same folder. The
+            // updater deliberately skips the shutdown-and-wipe step, so it would unzip a new
+            // RobloxPlayerBeta.exe over one that's mid-session and leave a half-and-half install.
+            //
+            // This isn't a new restriction in practice — since the layout change, cleanup deleted
+            // that directory before we got here, which made _mustUpgrade true and disqualified
+            // every profile launch a few lines above. That's now fixed, so state the real reason
+            // explicitly instead of relying on a side effect to keep us out of this path.
+            if (GetActiveProfileForBootstrap() != null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Not eligible: a Versions Manager profile owns this launch, and its install shares the directory the updater would write to");
+                return false;
+            }
+
             // at least 5GB of free space
             const long minimumFreeSpace = 5_000_000_000;
             long space = Filesystem.GetFreeDiskSpace(Paths.Base);
@@ -1209,11 +1228,53 @@ namespace ExploitStrap
                 ExploitStrap.Utility.WindowTiler.ScheduleTilePass(App.Settings.Prop.WindowTilingLayout);
             }
 
-            logCreatedEvent.WaitOne(TimeSpan.FromSeconds(15));
+            // Poll for the client's log rather than blocking the whole timeout in one call. A client
+            // that starts while another Roblox process already owns ROBLOX_singletonMutex doesn't
+            // run: it hands its launch request to that owner and exits within a second or two,
+            // writing no log at all. Polling lets us catch that in about two seconds instead of
+            // staring at "Starting Roblox..." for the full fifteen.
+            var logDeadline = DateTime.UtcNow.AddSeconds(15);
+            bool clientExitedEarly = false;
+
+            while (DateTime.UtcNow < logDeadline)
+            {
+                if (logCreatedEvent.WaitOne(TimeSpan.FromMilliseconds(500)))
+                    break;
+
+                if (_appPid != 0 && !IsClientProcessAlive(_appPid))
+                {
+                    clientExitedEarly = true;
+                    break;
+                }
+            }
+
+            // Our process is gone before any log appeared. Normally that means a running client took
+            // the request over, and its own log lands a moment later — that's a successful launch and
+            // there's nothing to do. Give it a moment to show up before deciding otherwise.
+            if (clientExitedEarly && String.IsNullOrEmpty(logFileName))
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"PID {_appPid} exited before writing a log — another Roblox instance may have taken the launch. Waiting briefly for its log.");
+
+                if (logCreatedEvent.WaitOne(TimeSpan.FromSeconds(4)))
+                {
+                    App.Logger.WriteLine(LOG_IDENT, "A log appeared — a running client picked the launch up.");
+                }
+                else if (_launchMode == LaunchMode.Player
+                         && !MultiInstanceActive
+                         && !_cancelTokenSource.IsCancellationRequested)
+                {
+                    // Multi-instance is excluded on purpose. We hold the singleton mutex there, so
+                    // no client can be a handoff target and this can't be a swallowed launch — and
+                    // its throwaway starter process exits after about a second by design, which
+                    // would otherwise look exactly like one and get a second client started.
+                    RetrySwallowedLaunch(startInfo, logCreatedEvent);
+                }
+            }
 
             if (String.IsNullOrEmpty(logFileName))
             {
                 App.Logger.WriteLine(LOG_IDENT, "Unable to identify log file");
+                LogRunningRobloxProcesses(LOG_IDENT);
                 Frontend.ShowPlayerErrorDialog();
                 return;
             }
@@ -1292,6 +1353,147 @@ namespace ExploitStrap
 
             // allow for window to show, since the log is created pretty far beforehand
             Thread.Sleep(1000);
+        }
+
+        // True while the process we started is still alive. Checked by PID against the running
+        // clients instead of by holding a Process handle: the v2.2.0 note in StartRoblox applies,
+        // and this is called on a loop.
+        private bool IsClientProcessAlive(int pid)
+        {
+            bool alive = false;
+
+            foreach (var process in Process.GetProcessesByName(AppData.ProcessName))
+            {
+                if (process.Id == pid)
+                    alive = true;
+
+                process.Dispose();
+            }
+
+            return alive;
+        }
+
+        // Recovery for a launch that a pre-existing Roblox process accepted and then did nothing
+        // with. Roblox leaves a tray-mode client behind for a few minutes after the user closes the
+        // game — its log carries userAgent "AppState/TrayMode" and it has no window — and that
+        // process owns ROBLOX_singletonMutex plus ROBLOX_singletonEvent. Any client started while
+        // it's there signals the event, exits immediately, and leaves the tray process to do the
+        // work. If that process is stuck (ours re-stamps the LIVE channel on every launch, which
+        // sends its updater off chasing a reinstall it can't run) the request evaporates: no game,
+        // no log, and the dialog sits on "Starting Roblox..." until the user gives up.
+        //
+        // Confirmed from a 2026-07-24 diagnostics bundle — two launches 13 seconds apart both died
+        // without writing a log while a tray-mode client from 40 seconds earlier stayed alive, and
+        // the same launch worked once that process timed itself out.
+        //
+        // Closing the singleton event is what the Multi Instance path already does before every
+        // launch, and it's non-destructive: nothing is killed, the stalled process just stops being
+        // a handoff target so the client we start next runs on its own.
+        private void RetrySwallowedLaunch(ProcessStartInfo startInfo, AutoResetEvent logCreatedEvent)
+        {
+            const string LOG_IDENT = "Bootstrapper::RetrySwallowedLaunch";
+
+            LogRunningRobloxProcesses(LOG_IDENT);
+
+            // Only ever retry into an empty room. A client that could legitimately have taken this
+            // launch has a window of its own, and a client still opening one has already written its
+            // log seconds ago — so if anything windowed is running, assume the handoff worked and we
+            // just didn't see the log, rather than risk starting a second client on top of a session
+            // the user is playing. Note this only decides whether to RETRY: nothing is ever killed
+            // here, unlike v420.23's window-handle check that closed live sessions.
+            if (AnyRobloxWindowOpen())
+            {
+                App.Logger.WriteLine(LOG_IDENT, "A windowed Roblox client is running — leaving the launch to it rather than starting another.");
+                return;
+            }
+
+            App.Logger.WriteLine(LOG_IDENT, "Launch was handed to a windowless Roblox process that never started the game — clearing the handoff and retrying once.");
+
+            if (Utility.MultiInstance.ClearSingletonEvents() == 0)
+                App.Logger.WriteLine(LOG_IDENT, "No singleton handle was closed; retrying anyway.");
+
+            try
+            {
+                using var process = Process.Start(startInfo)!;
+                _appPid = process.Id;
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT, ex);
+                return;
+            }
+
+            App.Logger.WriteLine(LOG_IDENT, $"Restarted Roblox (PID {_appPid}), waiting for log file");
+
+            App.Logger.WriteLine(LOG_IDENT, logCreatedEvent.WaitOne(TimeSpan.FromSeconds(15))
+                ? "Retry produced a log — the launch went through."
+                : "Retry produced no log either.");
+        }
+
+        // True when any running Roblox client owns a top-level window, i.e. someone is looking at a
+        // Roblox window right now. Used only to hold the retry back, never to close anything.
+        private bool AnyRobloxWindowOpen()
+        {
+            bool windowed = false;
+
+            foreach (var process in Process.GetProcessesByName(AppData.ProcessName))
+            {
+                try
+                {
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                        windowed = true;
+                }
+                catch (Exception)
+                {
+                    // Can't inspect it — assume it's a real client and stay out of the way.
+                    windowed = true;
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+
+            return windowed;
+        }
+
+        // Dump the Roblox processes that are alive right now. When a launch produces no log this is
+        // what separates "Roblox itself failed to start" from "something already held the singleton
+        // and swallowed us", and the logs recorded neither before.
+        private void LogRunningRobloxProcesses(string logIdent)
+        {
+            try
+            {
+                var lines = new List<string>();
+
+                foreach (string name in new[] { AppData.ProcessName, "RobloxCrashHandler" })
+                {
+                    foreach (var process in Process.GetProcessesByName(name))
+                    {
+                        try
+                        {
+                            string window = process.MainWindowHandle == IntPtr.Zero ? "no window" : "windowed";
+                            lines.Add($"{name} pid={process.Id} up={(DateTime.Now - process.StartTime).TotalSeconds:F0}s {window}");
+                        }
+                        catch (Exception)
+                        {
+                            lines.Add($"{name} pid={process.Id} (details unavailable)");
+                        }
+                        finally
+                        {
+                            process.Dispose();
+                        }
+                    }
+                }
+
+                App.Logger.WriteLine(logIdent, lines.Count == 0
+                    ? "No Roblox processes are running."
+                    : "Roblox processes running: " + String.Join(", ", lines));
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(logIdent, ex);
+            }
         }
 
         private bool ShouldRunAsAdmin()
@@ -1665,6 +1867,24 @@ namespace ExploitStrap
                 bool isCurrentState = dirName == App.PlayerState.Prop.VersionGuid
                                        || dirName == App.StudioState.Prop.VersionGuid;
 
+                // The install VersionProfileLayout unparked for THIS launch, moments ago. It has to
+                // be checked separately because on a Roblox version bump none of the three flags
+                // above cover it: the profile still records the previous hash in
+                // InstalledVersionGuid (that's only stamped once an upgrade succeeds) and
+                // Player/StudioState still hold the old hash too. So the directory the layout had
+                // just renamed the user's entire install into matched nothing and fell straight
+                // through to the Directory.Delete at the bottom of this loop.
+                //
+                // Under the old junction layout that only cost a relink ("Pruned stale junction
+                // version-<hash>" in every version-bump log). Under park-and-rename the same path
+                // deletes ~1GB of real files before the upgrade has downloaded a single byte, which
+                // means a cancelled or failed download leaves the user with no client at all, and
+                // _mustUpgrade is left permanently true until a full reinstall completes.
+                // UpgradeRoblox already clears this directory itself, after it has shut Roblox down
+                // and put the dialog into its upgrade state — that is where the delete belongs.
+                bool isActiveInstall = !string.IsNullOrEmpty(App.State.Prop.ActiveInstallVersionGuid)
+                                       && dirName.Equals(App.State.Prop.ActiveInstallVersionGuid, StringComparison.OrdinalIgnoreCase);
+
                 if (isJunction)
                 {
                     // Junctions are the v420.24 layout and are no longer created — launching a
@@ -1681,9 +1901,11 @@ namespace ExploitStrap
 
                 // Real version-<hash>\ dir. Could be Studio, the legacy Player
                 // install, or a v420.23 leftover we couldn't adopt at launch.
-                if (isCurrentState || referencedByProfile)
+                if (isCurrentState || referencedByProfile || isActiveInstall)
                 {
-                    if (referencedByProfile && !isCurrentState)
+                    if (isActiveInstall && !isCurrentState && !referencedByProfile)
+                        App.Logger.WriteLine(LOG_IDENT, $"Keeping {dirName} (the active profile's install was just unparked here for this launch)");
+                    else if (referencedByProfile && !isCurrentState)
                         App.Logger.WriteLine(LOG_IDENT, $"Keeping {dirName} (referenced by a Versions Manager profile — will adopt on its next launch)");
                     continue;
                 }

@@ -185,6 +185,24 @@ namespace ExploitStrap.Utility
             });
         }
 
+        // Close ROBLOX_singletonEvent wherever it's open, without holding the mutex first. The
+        // bootstrapper calls this when a launch it started was handed off to an already-running
+        // client that then did nothing with it (a leftover tray-mode process, typically): with the
+        // event gone there's no handoff target left, so the retry runs on its own instead of
+        // exiting into the same dead end. Returns how many handles were closed.
+        public static int ClearSingletonEvents()
+        {
+            try
+            {
+                return SingletonEventExists() ? SweepSingletonEvents() : 0;
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT + "::Clear", ex);
+                return 0;
+            }
+        }
+
         // True if any process in this session currently has ROBLOX_singletonEvent open,
         // i.e. some Roblox client is acting as the primary instance.
         private static bool SingletonEventExists()

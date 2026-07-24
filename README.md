@@ -76,7 +76,7 @@ If Defender already quarantined it: **Windows Security → Virus & threat protec
 
 ## Credits & support
 
-Vibe pasted by **Sir Meme** — in the Roblox community since 2017, formerly Synapse Softworks LLC, now runs [robloxscripts.com](https://robloxscripts.com) and [rsware.store](https://rsware.store). Vibe coded with Claude.
+Vibe pasted by **Sir Meme** — in the Roblox community since 2017, formerly Synapse Softworks LLC, now runs [robloxscripts.com](https://robloxscripts.com). Vibe coded with Claude.
 
 Found a bug? [Open an issue](https://sirmemegithub.com/RealSlimShady2000/MrExLiveChannelForcer/issues) or ask in the [Discord](https://discord.robloxscripts.com).
 
